@@ -1,0 +1,54 @@
+name = "anivault"
+main = "src/index.ts"
+compatibility_date = "2026-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./public"
+# Static files under /assets/* are served directly by Cloudflare before
+# hitting the Worker — same URLs as the PHP site (/assets/css/style.css,
+# /assets/js/app.js, /assets/img/...), so nothing else needs to change.
+# Copy your image files (logo.png, icon.png, anime-library/*, etc.) into
+# ./public/assets/img/ to match — they weren't part of the code upload.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "anivault"
+database_id = "d81c4c7f-74c1-413f-ac90-30ac305415b6"
+
+[[kv_namespaces]]
+binding = "API_CACHE"
+id = "a8cfab6673614ae0a2fa243529787ba4"
+
+# R2 disabled for now — Cloudflare requires a card on file to enable R2,
+# even on the free tier. Avatar uploads, badge images, and admin image
+# tools will throw until this is added back. Everything else deploys
+# and works fine without it.
+# Once ready: uncomment below, run `npx wrangler r2 bucket create anivault-avatars`,
+# then `npx wrangler deploy` again.
+# [[r2_buckets]]
+# binding = "AVATARS"
+# bucket_name = "anivault-avatars"
+
+[vars]
+SITE_NAME = "AniVault"
+SITE_URL = "https://anivault.anivault-807.workers.dev"
+SESSION_LIFETIME_SECONDS = "86400"
+GOOGLE_REDIRECT_URI = "https://anivault.co/pages/oauth_google.php"
+DISCORD_REDIRECT_URI = "https://anivault.co/pages/oauth_discord.php"
+API_CACHE_ENABLED = "1"
+API_CACHE_TIME = "3600"
+
+# Secrets (do NOT put real values here — set them with:
+#   wrangler secret put DB_PASS_LEGACY   (only needed if you keep a MySQL fallback)
+#   wrangler secret put GOOGLE_CLIENT_ID
+#   wrangler secret put GOOGLE_CLIENT_SECRET
+#   wrangler secret put DISCORD_CLIENT_ID
+#   wrangler secret put DISCORD_CLIENT_SECRET
+#   wrangler secret put DISCORD_BOT_TOKEN
+#   wrangler secret put DISCORD_SERVER_ID
+#   wrangler secret put BOT_SECRET
+#   wrangler secret put DISCORD_RELAY_URL
+#   wrangler secret put MAL_CLIENT_ID
+#   wrangler secret put MAL_CLIENT_SECRET
+#   wrangler secret put TMDB_API_KEY

@@ -1,0 +1,421 @@
+// Ports includes/header.php and includes/footer.php.
+// Deliberate change from the PHP version: style.css/app.js/icons.svg are
+// served as normal static assets (via Workers Assets, same URLs as before)
+// instead of being read into the page with readfile() on every request.
+// Same visual output, but cacheable by the browser/CDN instead of re-sent
+// every page load. The icon sprite is still inlined in <head> though —
+// that one's kept exactly as the PHP version did it, since same-page
+// fragment `<use href="#icon-x">` references are what work reliably on
+// older Android WebKit (relevant given the Oppo A15 rendering issues).
+import { h } from '../lib/helpers';
+import { icon } from '../lib/icons';
+import { ICON_SPRITE } from '../lib/icon-sprite';
+
+export interface CurrentUser {
+  id: number;
+  username: string;
+  avatar_url: string | null;
+  role: string;
+}
+
+export interface OgData {
+  title?: string;
+  description?: string;
+  image?: string;
+  image_width?: number;
+  image_height?: number;
+  url?: string;
+  type?: string;
+  site_name?: string;
+}
+
+export interface LayoutOptions {
+  siteUrl: string;
+  siteName: string;
+  pageTitle?: string;
+  pageDescription?: string;
+  ogData?: OgData;
+  currentPage: string; // basename without .php, e.g. "index", "browse"
+  currentUser: CurrentUser | null;
+  unreadCount: number;
+  bannerEnabled?: boolean;
+  bannerMessage?: string;
+  bannerType?: 'info' | 'success' | 'warning' | 'error';
+  requestUrl: string; // full request URL, for canonical / og:url fallback
+}
+
+const BANNER_COLORS: Record<string, string> = { info: 'rgba(33,150,243,.15)', success: 'rgba(76,175,80,.15)', warning: 'rgba(255,193,7,.15)', error: 'rgba(244,67,54,.15)' };
+const BANNER_BORDERS: Record<string, string> = { info: 'rgba(33,150,243,.4)', success: 'rgba(76,175,80,.4)', warning: 'rgba(255,193,7,.4)', error: 'rgba(244,67,54,.4)' };
+const BANNER_ICONS: Record<string, string> = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '🚨' };
+
+export function renderHeader(o: LayoutOptions): string {
+  const og = o.ogData;
+  const ogBlock = og && og.title
+    ? `
+<meta property="og:title" content="${h(og.title)}">
+<meta property="og:description" content="${h(og.description ?? '')}">
+<meta property="og:image" content="${h(og.image ?? '')}">
+<meta property="og:image:width" content="${og.image_width ?? 1200}">
+<meta property="og:image:height" content="${og.image_height ?? 630}">
+<meta property="og:image:alt" content="${h(og.title)}">
+<meta property="og:url" content="${h(og.url ?? o.requestUrl)}">
+<meta property="og:type" content="${h(og.type ?? 'website')}">
+<meta property="og:site_name" content="${h(og.site_name ?? o.siteName)}">
+<meta property="og:locale" content="en_US">
+${og.type === 'video.episode' ? `
+<meta property="og:video" content="${h(og.url ?? '')}">
+<meta property="og:video:type" content="text/html">
+<meta property="og:video:width" content="1280">
+<meta property="og:video:height" content="720">` : ''}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${h(og.title)}">
+<meta name="twitter:description" content="${h(og.description ?? '')}">
+<meta name="twitter:image" content="${h(og.image ?? '')}">
+<meta name="twitter:site" content="@AniVault">
+<meta name="theme-color" content="#e8453c">`
+    : `
+<meta property="og:title" content="${h(o.pageTitle ?? o.siteName)} — ${h(o.siteName)}">
+<meta property="og:description" content="Track your anime, discover new series, and connect with the community on AniVault.">
+<meta property="og:site_name" content="${h(o.siteName)}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="${h(o.requestUrl)}">
+<meta property="og:image" content="${o.siteUrl}/assets/img/site-img/icon.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="${h(o.pageTitle ?? o.siteName)} — ${h(o.siteName)}">
+<meta name="twitter:description" content="Track your anime, discover new series, and connect with the community on AniVault.">
+<meta name="twitter:image" content="${o.siteUrl}/assets/img/site-img/icon.png">
+<meta name="theme-color" content="#e8453c">`;
+
+  const bannerBlock = o.bannerEnabled && o.bannerMessage
+    ? `<div style="padding:10px 20px;font-size:0.88rem;text-align:center;background:${BANNER_COLORS[o.bannerType ?? 'info']};border-bottom:1px solid ${BANNER_BORDERS[o.bannerType ?? 'info']};color:var(--text-primary);">${BANNER_ICONS[o.bannerType ?? 'info']} ${h(o.bannerMessage)}</div>`
+    : '';
+
+  const cu = o.currentUser;
+  const userNavBlock = cu
+    ? `
+    <div class="dropdown" id="notif-dropdown-wrap">
+      <div class="notif-bell ${o.unreadCount > 0 ? 'has-unread' : ''}" id="notif-bell" title="Notifications">
+        ${icon('bell', 'icon-medium')}
+        ${o.unreadCount > 0
+          ? `<span class="notif-badge" id="notif-badge">${o.unreadCount > 99 ? '99+' : o.unreadCount}</span>`
+          : `<span class="notif-badge" id="notif-badge" style="display:none;">0</span>`}
+      </div>
+      <div class="notif-dropdown" id="notif-panel">
+        <div class="notif-dropdown-header">
+          <h4>${icon('bell', 'icon-small')} NOTIFICATIONS</h4>
+          <button onclick="markAllRead()" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:3px 10px;">${icon('check', 'icon-small')} All read</button>
+        </div>
+        <div class="notif-list" id="notif-list"><div class="notif-empty"><span>${icon('bell', 'icon-large')}</span>Loading...</div></div>
+        <div class="notif-footer"><a href="${o.siteUrl}/pages/notifications.php">${icon('arrow-right', 'icon-small')} View all notifications →</a></div>
+      </div>
+    </div>
+    <div class="dropdown">
+      <div class="nav-avatar" title="${h(cu.username)}">
+        ${cu.avatar_url ? `<img src="${h(cu.avatar_url)}" alt="avatar">` : icon('user', 'icon-medium')}
+      </div>
+      <div class="dropdown-menu">
+        <a href="${o.siteUrl}/u/${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
+        <a href="${o.siteUrl}/pages/profile.php">${icon('edit', 'icon-small')} Edit Profile</a>
+        <a href="${o.siteUrl}/pages/mylist.php">${icon('list', 'icon-small')} My List</a>
+        <a href="${o.siteUrl}/wrapped" style="background:linear-gradient(90deg,rgba(232,69,60,0.08),transparent);">${icon('star', 'icon-small')} Wrapped</a>
+        <a href="${o.siteUrl}/announcements">${icon('megaphone', 'icon-small')} Announcements</a>
+        <a href="${o.siteUrl}/pages/favorites.php">${icon('heart', 'icon-small')} Favorites</a>
+        <a href="${o.siteUrl}/pages/importexport.php">${icon('box', 'icon-small')} Import / Export</a>
+        ${(cu.role === 'admin' || cu.role === 'owner') ? `<div class="dropdown-divider"></div><a href="${o.siteUrl}/admin/">${icon('shield', 'icon-small')} Admin Panel</a>` : ''}
+        <div class="dropdown-divider"></div>
+        <a href="${o.siteUrl}/logout">${icon('logout', 'icon-small')} Logout</a>
+      </div>
+    </div>`
+    : `
+    <button onclick="requireLogin('login')" class="btn btn-ghost btn-sm">${icon('login', 'icon-small')} Login</button>
+    <button onclick="requireLogin('signup')" class="btn btn-primary btn-sm">${icon('plus', 'icon-small')} Sign Up</button>`;
+
+  const active = (p: string) => (o.currentPage === p ? 'active' : '');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>${h(o.pageTitle ?? o.siteName)} — AniVault</title>
+<meta name="description" content="${h(og?.description ?? o.pageDescription ?? 'Track your anime, discover new series, and connect with the community.')}">
+<link rel="stylesheet" href="${o.siteUrl}/assets/css/style.css">
+<link rel="icon" type="image/png" href="${o.siteUrl}/assets/img/site-img/icon.png">
+<link rel="canonical" href="${h(og?.url ?? o.requestUrl)}">
+<script>window.__siteUrl = '${o.siteUrl}';</script>
+<script src="${o.siteUrl}/assets/js/app.js" defer></script>
+${ogBlock}
+<style>
+#av-page-loader{position:fixed;inset:0;z-index:99999;background:#0a0a0f;display:flex;justify-content:center;align-items:center;}
+#av-page-loader.av-loader-hidden{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .4s ease,visibility .4s ease;}
+</style>
+<script>
+(function(){
+  function dismissLoader(){
+    var l=document.getElementById('av-page-loader');
+    if(!l||l._done)return;
+    l._done=true;
+    l.classList.add('av-loader-hidden');
+    setTimeout(function(){ l.remove(); },500);
+  }
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',dismissLoader); } else { dismissLoader(); }
+  setTimeout(dismissLoader,3000);
+  window.__dismissLoader=dismissLoader;
+})();
+</script>
+</head>
+<body>
+${ICON_SPRITE}
+<div id="av-page-loader">
+  <div class="av-loader">
+    <div class="particle p1"></div><div class="particle p2"></div><div class="particle p3"></div>
+    <div class="logo-wrap"><img src="${o.siteUrl}/assets/img/site-img/logo.png" class="logo" alt="AniVault"></div>
+  </div>
+</div>
+${bannerBlock}
+<div id="toast-container"></div>
+
+<nav class="navbar">
+  <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
+  <a href="${o.siteUrl}/" class="nav-logo">Ani<span>Vault</span></a>
+  <ul class="nav-links">
+    <li><a href="${o.siteUrl}/" class="${active('index')}">${icon('home', 'icon-small')} Home</a></li>
+    <li><a href="${o.siteUrl}/pages/browse.php" class="${active('browse')}">${icon('search', 'icon-small')} Browse</a></li>
+    <li><a href="${o.siteUrl}/pages/seasonal.php" class="${active('seasonal')}">${icon('fire', 'icon-small')} Seasonal</a></li>
+    <li><a href="${o.siteUrl}/pages/top.php" class="${active('top')}">${icon('trophy', 'icon-small')} Top</a></li>
+    <li><a href="${o.siteUrl}/pages/schedule.php" class="${active('schedule')}">${icon('calendar', 'icon-small')} Schedule</a></li>
+    ${cu ? `<li><a href="${o.siteUrl}/feed" class="${active('feed')}">${icon('globe', 'icon-small')} Feed</a></li>
+    <li><a href="${o.siteUrl}/wrapped" class="${active('wrapped')}" style="background:linear-gradient(135deg,rgba(232,69,60,0.15),rgba(245,200,66,0.1));border-radius:6px;">${icon('star', 'icon-small')} Wrapped</a></li>` : ''}
+  </ul>
+  <form id="nav-search-form" class="nav-search">
+    <input type="text" placeholder="Search anime..." name="q" autocomplete="off">
+    <button type="submit">${icon('search', 'icon-small')}</button>
+  </form>
+  <button class="nav-search-icon" id="nav-search-icon" aria-label="Search">${icon('search', 'icon-small')}</button>
+  <div class="nav-user">${userNavBlock}</div>
+</nav>
+
+<script>
+window.__loggedIn = ${cu ? 'true' : 'false'};
+window.__siteUrl  = '${o.siteUrl}';
+</script>
+
+<div class="mobile-menu" id="mobile-menu">
+  <form class="mobile-search" id="mobile-search-form">
+    <input type="text" placeholder="Search anime..." name="q" autocomplete="off">
+    <button type="submit">${icon('search', 'icon-small')}</button>
+  </form>
+  <a href="${o.siteUrl}/" class="${active('index')}">${icon('home', 'icon-small')} Home</a>
+  <a href="${o.siteUrl}/pages/browse.php" class="${active('browse')}">${icon('search', 'icon-small')} Browse</a>
+  <a href="${o.siteUrl}/pages/seasonal.php" class="${active('seasonal')}">${icon('fire', 'icon-small')} Seasonal</a>
+  <a href="${o.siteUrl}/pages/top.php" class="${active('top')}">${icon('trophy', 'icon-small')} Top Anime</a>
+  <a href="${o.siteUrl}/pages/schedule.php" class="${active('schedule')}">${icon('calendar', 'icon-small')} Schedule</a>
+  ${cu ? `
+  <a href="${o.siteUrl}/pages/mylist.php" class="${active('mylist')}">${icon('list', 'icon-small')} My List</a>
+  <a href="${o.siteUrl}/feed" class="${active('feed')}">${icon('globe', 'icon-small')} Feed</a>
+  <div class="mobile-menu-divider"></div>
+  <a href="${o.siteUrl}/u/${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
+  <a href="${o.siteUrl}/pages/profile.php">${icon('edit', 'icon-small')} Edit Profile</a>
+  <a href="${o.siteUrl}/pages/favorites.php">${icon('heart', 'icon-small')} Favorites</a>
+  <a href="${o.siteUrl}/pages/importexport.php">${icon('box', 'icon-small')} Import / Export</a>
+  ${(cu.role === 'admin' || cu.role === 'owner') ? `<div class="mobile-menu-divider"></div><a href="${o.siteUrl}/admin/">${icon('shield', 'icon-small')} Admin Panel</a>` : ''}
+  <div class="mobile-menu-divider"></div>
+  <a href="${o.siteUrl}/logout">${icon('logout', 'icon-small')} Logout</a>` : `
+  <div class="mobile-menu-divider"></div>
+  <button onclick="requireLogin('login');document.getElementById('mobile-menu').classList.remove('open');" class="btn btn-ghost" style="text-align:left;justify-content:flex-start;gap:0.5rem;width:100%;border-radius:0;padding:0.9rem 1.25rem;">${icon('login', 'icon-small')} Login</button>
+  <button onclick="requireLogin('signup');document.getElementById('mobile-menu').classList.remove('open');" class="btn btn-primary" style="text-align:left;justify-content:flex-start;gap:0.5rem;width:100%;border-radius:0;padding:0.9rem 1.25rem;">${icon('plus', 'icon-small')} Sign Up</button>`}
+</div>
+
+<div class="search-popup-overlay" id="search-popup-overlay">
+  <div class="search-popup" id="search-popup">
+    <form id="search-popup-form" class="search-popup-form">
+      <button type="button" class="search-popup-back" id="search-popup-close" aria-label="Close search">${icon('arrow-left', 'icon-medium')}</button>
+      <input type="text" id="search-popup-input" placeholder="Search anime..." name="q" autocomplete="off">
+      <button type="submit" class="search-popup-submit" aria-label="Submit search">${icon('search', 'icon-medium')}</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="add-to-list-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-title">${icon('plus', 'icon-small')} Add to List</h3>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <button type="button" class="btn btn-danger btn-sm" id="modal-delete-btn" style="display:none; gap:0.3em; padding:0.3em 0.65em; font-size:0.8rem;" onclick="deleteFromList()">${icon('trash', 'icon-small')} Delete</button>
+        <button class="modal-close">${icon('x', 'icon-medium')}</button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <form id="add-to-list-form">
+        <input type="hidden" name="anime_id" id="al_anime_id">
+        <input type="hidden" name="anime_title" id="al_anime_title">
+        <input type="hidden" name="anime_image" id="al_anime_image">
+        <input type="hidden" name="anime_episodes" id="al_anime_eps">
+        <input type="hidden" name="score" id="al_score" value="">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select name="status" id="al_status" class="form-control">
+            <option value="plan_to_watch">${icon('plantowatch', 'icon-small')} Planning</option>
+            <option value="watching">${icon('watching', 'icon-small')} Watching</option>
+            <option value="completed">${icon('completed', 'icon-small')} Completed</option>
+            <option value="on_hold">${icon('onhold', 'icon-small')} On Hold</option>
+            <option value="dropped">${icon('dropped', 'icon-small')} Dropped</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Episodes Watched</label>
+          <input type="number" id="al_watched" name="episodes_watched" class="form-control" min="0" value="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Score (1–10)</label>
+          <div class="score-input" data-target="al_score">
+            ${Array.from({ length: 10 }, (_, i) => i + 1).map((i) => `<button type="button" class="score-btn" data-score="${i}">${i}</button>`).join('')}
+          </div>
+        </div>
+        <div class="flex gap-1">
+          <button type="submit" class="btn btn-primary" style="flex:1">${icon('check', 'icon-small')} Save to List</button>
+          <button type="button" class="btn btn-ghost" onclick="closeModal('add-to-list-modal')">${icon('x', 'icon-small')} Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="auth-modal" data-static="1">
+  <div class="modal" style="max-width:460px;">
+    <div class="auth-modal-tabs">
+      <button class="auth-tab active" id="auth-tab-login" onclick="authSwitchTab('login')">Sign In</button>
+      <button class="auth-tab" id="auth-tab-signup" onclick="authSwitchTab('signup')">Sign Up</button>
+      <button class="modal-close" onclick="closeModal('auth-modal')" style="margin-left:auto;padding:0 1.25rem;">${icon('x', 'icon-medium')}</button>
+    </div>
+    <div class="modal-body auth-panel" id="auth-panel-login">
+      <div class="text-center mb-3"><p class="text-muted" style="font-size:0.9rem;">Sign in to your AniVault account</p></div>
+      <div id="auth-login-error" class="alert alert-error" style="display:none;"></div>
+      <div id="auth-login-success" class="alert alert-success" style="display:none;"></div>
+      <div style="margin-bottom:1.1rem;">
+        <a id="auth-google-login-btn" href="#" onclick="authGoogleRedirect(event)" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:11px 16px;border-radius:8px;font-weight:600;font-size:0.95rem;background:#fff;color:#3c4043;border:1px solid #dadce0;text-decoration:none;transition:box-shadow .15s;">
+          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+          Continue with Google
+        </a>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.1rem;color:var(--text-muted);font-size:0.82rem;"><div style="flex:1;height:1px;background:var(--border);"></div>or sign in with email<div style="flex:1;height:1px;background:var(--border);"></div></div>
+      <div id="auth-login-form-wrap">
+        <div class="form-group"><label class="form-label">${icon('user','icon-small')} Username or Email</label><input type="text" id="auth-login-username" class="form-control" placeholder="Username or email" autocomplete="username"></div>
+        <div class="form-group"><label class="form-label">${icon('lock','icon-small')} Password</label><input type="password" id="auth-login-password" class="form-control" placeholder="Password" autocomplete="current-password"></div>
+        <button class="btn btn-primary btn-block btn-lg" onclick="authSubmitLogin()">${icon('login','icon-small')} Sign In</button>
+      </div>
+      <p class="text-center mt-2" style="color:var(--text-secondary);font-size:0.88rem;">Don't have an account? <a href="#" onclick="authSwitchTab('signup');return false;">${icon('plus','icon-small')} Sign up free</a></p>
+    </div>
+    <div class="modal-body auth-panel" id="auth-panel-signup" style="display:none;">
+      <div class="text-center mb-3"><p class="text-muted" style="font-size:0.9rem;">Join AniVault — track, rate &amp; discover anime</p></div>
+      <div id="auth-signup-error" class="alert alert-error" style="display:none;"></div>
+      <div id="auth-signup-success" class="alert alert-success" style="display:none;"></div>
+      <div style="margin-bottom:1.1rem;">
+        <a id="auth-google-signup-btn" href="#" onclick="authGoogleRedirect(event)" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:11px 16px;border-radius:8px;font-weight:600;font-size:0.95rem;background:#fff;color:#3c4043;border:1px solid #dadce0;text-decoration:none;transition:box-shadow .15s;">
+          <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+          Sign up with Google
+        </a>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.1rem;color:var(--text-muted);font-size:0.82rem;"><div style="flex:1;height:1px;background:var(--border);"></div>or create an account<div style="flex:1;height:1px;background:var(--border);"></div></div>
+      <div id="auth-signup-form-wrap">
+        <div class="form-group"><label class="form-label">${icon('user','icon-small')} Username</label><input type="text" id="auth-signup-username" class="form-control" placeholder="Choose a username" autocomplete="username" minlength="3" maxlength="50"></div>
+        <div class="form-group"><label class="form-label">${icon('mail','icon-small')} Email</label><input type="email" id="auth-signup-email" class="form-control" placeholder="your@email.com" autocomplete="email"></div>
+        <div class="form-group"><label class="form-label">${icon('lock','icon-small')} Password</label><input type="password" id="auth-signup-password" class="form-control" placeholder="Min. 6 characters" autocomplete="new-password" minlength="6"></div>
+        <div class="form-group"><label class="form-label">${icon('check','icon-small')} Confirm Password</label><input type="password" id="auth-signup-confirm" class="form-control" placeholder="Repeat password" autocomplete="new-password"></div>
+        <button class="btn btn-primary btn-block btn-lg" onclick="authSubmitSignup()">${icon('plus','icon-small')} Create Account</button>
+      </div>
+      <p class="text-center mt-2" style="color:var(--text-secondary);font-size:0.88rem;">Already have an account? <a href="#" onclick="authSwitchTab('login');return false;">${icon('login','icon-small')} Sign in</a></p>
+    </div>
+  </div>
+</div>
+
+<main class="page-content">`;
+}
+
+export function renderFooter(o: { siteUrl: string; currentUser: CurrentUser | null }): string {
+  const cu = o.currentUser;
+  const year = new Date().getUTCFullYear();
+  return `
+</main>
+
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-col">
+      <div class="footer-logo"><img src="${o.siteUrl}/assets/img/site-img/icon.png" alt="AniVault" class="footer-logo-img" width="28" height="28"> Ani<span>Vault</span></div>
+      <p class="footer-about">Free & Ad-free anime streaming platform</p>
+      <div class="footer-social">
+        <a href="https://discord.gg/QK2dAVgK2a" aria-label="Discord" class="social-link">${icon('discord', 'social-icon')}</a>
+        <a href="https://github.com/SH0MIK" aria-label="GitHub" class="social-link">${icon('github', 'social-icon')}</a>
+        <a href="https://facebook.com/shomik585" aria-label="Facebook" class="social-link">${icon('facebook', 'social-icon')}</a>
+        <a href="#" aria-label="Twitter" class="social-link">${icon('twitter', 'social-icon')}</a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h4 class="footer-heading">Navigate</h4>
+      <ul class="footer-links">
+        <li><a href="${o.siteUrl}/">${icon('home', 'icon-inline')} Home</a></li>
+        <li><a href="${o.siteUrl}/pages/browse.php">${icon('search', 'icon-inline')} Browse</a></li>
+        <li><a href="${o.siteUrl}/pages/seasonal.php">${icon('fire', 'icon-inline')} Seasonal</a></li>
+        <li><a href="${o.siteUrl}/pages/top.php">${icon('trophy', 'icon-inline')} Top Anime</a></li>
+        <li><a href="${o.siteUrl}/pages/schedule.php">${icon('calendar', 'icon-inline')} Schedule</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 class="footer-heading">Your Vault</h4>
+      <ul class="footer-links">
+        ${cu ? `
+        <li><a href="${o.siteUrl}/pages/mylist.php">${icon('list', 'icon-inline')} My List</a></li>
+        <li><a href="${o.siteUrl}/pages/favorites.php">${icon('heart', 'icon-inline')} Favorites</a></li>
+        <li><a href="${o.siteUrl}/pages/profile.php">${icon('edit', 'icon-inline')} Edit Profile</a></li>
+        <li><a href="${o.siteUrl}/pages/importexport.php">${icon('box', 'icon-inline')} Import / Export</a></li>` : `
+        <li><a href="${o.siteUrl}/login">${icon('login', 'icon-inline')} Login</a></li>
+        <li><a href="${o.siteUrl}/pages/register.php">${icon('plus', 'icon-inline')} Sign Up</a></li>`}
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4 class="footer-heading">Info</h4>
+      <ul class="footer-links">
+        <li><a href="${o.siteUrl}/announcements">${icon('megaphone', 'icon-inline')} Announcements</a></li>
+        <li><a href="${o.siteUrl}/terms">${icon('terms', 'icon-inline')} Terms of Use</a></li>
+        <li><a href="${o.siteUrl}/pages/privacy.php">${icon('shield', 'icon-inline')} Privacy Policy</a></li>
+        <li><a href="mailto:abdullahalmahim585@gmail.com">${icon('mail', 'icon-inline')} Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div class="footer-bottom-left"><span>© ${year} AniVault. All rights reserved.</span></div>
+    <span>Made with ♥ for anime fans</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  function fmt(ts) {
+    const nowSec = Date.now() / 1000;
+    const diff   = Math.floor(nowSec - ts);
+    const d      = new Date(ts * 1000);
+    if (diff < 60)     return 'just now';
+    if (diff < 3600)   return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400)  return Math.floor(diff / 3600) + 'h ago';
+    if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+    return new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric', year: 'numeric', timeZone: userTz }).format(d);
+  }
+  function updateAll() {
+    document.querySelectorAll('time.local-ts[data-ts]').forEach(el => {
+      const ts = parseInt(el.getAttribute('data-ts'), 10);
+      if (!isNaN(ts)) el.textContent = fmt(ts);
+    });
+  }
+  updateAll();
+  setInterval(updateAll, 60000);
+})();
+</script>
+<script>
+if (window.__dismissLoader) window.__dismissLoader();
+</script>
+</body>
+</html>`;
+}
