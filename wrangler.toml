@@ -29,7 +29,7 @@ SITE_NAME = "AniVault"
 SITE_URL = "https://anivault.anivault-807.workers.dev"
 SESSION_LIFETIME_SECONDS = "86400"
 GOOGLE_REDIRECT_URI = "https://anivault.co/pages/oauth_google.php"
-DISCORD_REDIR ECT_URI = "https://anivault.co/pages/oauth_discord.php"
+DISCORD_REDIRECT_URI = "https://anivault.co/pages/oauth_discord.php"
 API_CACHE_ENABLED = "1"
 API_CACHE_TIME = "3600"
 
