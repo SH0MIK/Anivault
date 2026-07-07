@@ -267,7 +267,7 @@ function renderUserRow(u: any, displayNum: number, ipCountryMap: Record<string, 
   <td><span class="uid-badge" style="font-family:monospace;font-size:0.78rem;background:var(--bg-hover,rgba(255,255,255,.06));padding:2px 7px;border-radius:6px;cursor:pointer;user-select:all;letter-spacing:.03em;" onclick="copyUid(this,'${h(u.uid ?? '')}')" title="Click to copy">${h(u.uid ?? '—')}</span></td>
   <td><div class="flex" style="gap:10px;align-items:center;">
     <div class="nav-avatar" style="width:32px;height:32px;font-size:0.8rem;flex-shrink:0;">${u.avatar_url ? `<img src="${h(u.avatar_url)}" alt="">` : h(u.username.charAt(0).toUpperCase())}</div>
-    <div><span class="username-with-badges"><a href="${siteUrl}/u/${h(u.username)}" style="font-weight:500;color:var(--text-primary);">${h(u.username)}</a>${Badge.renderList(badges)}</span><div style="font-size:0.78rem;color:var(--text-muted);">${h(u.email)}</div></div>
+    <div><span class="username-with-badges"><a href="${siteUrl}/pages/user.php?u=${h(u.username)}" style="font-weight:500;color:var(--text-primary);">${h(u.username)}</a>${Badge.renderList(badges)}</span><div style="font-size:0.78rem;color:var(--text-muted);">${h(u.email)}</div></div>
   </div></td>
   <td>${roleBadge(u.role, u.id)}</td>
   <td>${u.is_active ? `<span class="badge badge-completed">Active</span>` : `<span class="badge badge-dropped">Banned</span>`}</td>
