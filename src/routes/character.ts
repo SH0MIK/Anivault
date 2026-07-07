@@ -117,7 +117,7 @@ characterRoutes.get('/pages/character.php', async (c) => {
           const role = entry.role ?? '';
           const isMain = role.toLowerCase() === 'main';
           return `
-        <a href="${siteUrl}/anime?id=${aid}" class="char-anime-item">
+        <a href="${siteUrl}/pages/anime.php?id=${aid}" class="char-anime-item">
           <div class="char-anime-poster">${aimg ? `<img src="${h(aimg)}" alt="${h(atitle)}" loading="lazy">` : ''}</div>
           <div class="char-anime-info">
             <div class="char-anime-title">${h(atitle)}</div>
