@@ -37,7 +37,7 @@ API_CACHE_TIME = "3600"
 #   wrangler secret put DB_PASS_LEGACY   (only needed if you keep a MySQL fallback)
 #   wrangler secret put GOOGLE_CLIENT_ID
 #   wrangler secret put GOOGLE_CLIENT_SECRET
-#   wrangler sret put DISCORD_CLIENT_ID
+#   wrangler secret put DISCORD_CLIENT_ID
 #   wrangler secret put DISCORD_CLIENT_SECRET
 #   wrangler secret put DISCORD_BOT_TOKEN
 #   wrangler secret put DISCORD_SERVER_ID
