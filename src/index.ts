@@ -35,6 +35,7 @@ import { adminWatchStatsRoutes } from './routes/admin/watch-stats';
 import { adminHealImagesRoutes } from './routes/admin/heal-images';
 import { scraperRoutes } from './routes/api-scraper';
 import { legalRoutes } from './routes/legal';
+import { watchNowRoutes } from './routes/watch-now';
 
 // Env bindings + secrets (set secrets via `wrangler secret put NAME`, see wrangler.toml)
 export interface Env {
@@ -99,5 +100,6 @@ app.route('/', adminWatchStatsRoutes);
 app.route('/', adminHealImagesRoutes);
 app.route('/', scraperRoutes);
 app.route('/', legalRoutes);
+app.route('/', watchNowRoutes);
 
 export default app;
