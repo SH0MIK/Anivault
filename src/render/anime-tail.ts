@@ -249,7 +249,7 @@ function buildEpCard(ep, animeId, cover, thumbMap) {
   const thumb = (thumbMap && thumbMap[parseInt(epNum)]) || cover;
 
   const div = document.createElement('a');
-  div.href      = (window.__siteUrl || '') + '/watch?anime=' + animeId + '&ep=' + epNum;
+  div.href      = (window.__siteUrl || '') + '/pages/watch.php?anime=' + animeId + '&ep=' + epNum;
   div.className = 'ep-card' + (hasVid ? ' has-video-ep' : '');
   div.dataset.title    = epTitle;
   div.dataset.meta     = meta;
@@ -367,7 +367,7 @@ async function lazyLoadCharacters() {
       const div = document.createElement('div');
       div.className = 'anime-card';
       div.style.cursor = 'pointer';
-      div.onclick = () => { window.location.href = window.__siteUrl + '/character?id=' + charId; };
+      div.onclick = () => { window.location.href = window.__siteUrl + '/pages/character.php?id=' + charId; };
       div.innerHTML = \`
         <div class="anime-card-poster" style="aspect-ratio:1/1.2;position:relative;">
           \${img ? \`<img src="\${img}" alt="\${char.name || ''}" loading="lazy">\` : ''}
@@ -409,7 +409,7 @@ async function lazyLoadRelated() {
       const div = document.createElement('div');
       div.className = 'anime-card';
       div.style.cursor = 'pointer';
-      div.onclick = () => { window.location.href = window.__siteUrl + '/anime?id=' + aid; };
+      div.onclick = () => { window.location.href = window.__siteUrl + '/pages/anime.php?id=' + aid; };
       div.innerHTML = \`
         <div class="anime-card-poster">
           \${aimg ? \`<img src="\${aimg}" alt="\${atitle.replace(/"/g,'&quot;')}" loading="lazy">\` : ''}
