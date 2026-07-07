@@ -116,14 +116,13 @@ ${og.type === 'video.episode' ? `
         ${cu.avatar_url ? `<img src="${h(cu.avatar_url)}" alt="avatar">` : icon('user', 'icon-medium')}
       </div>
       <div class="dropdown-menu">
-        <a href="${o.siteUrl}/u/${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
+        <a href="${o.siteUrl}/pages/user.php?u=${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
         <a href="${o.siteUrl}/pages/profile.php">${icon('edit', 'icon-small')} Edit Profile</a>
         <a href="${o.siteUrl}/pages/mylist.php">${icon('list', 'icon-small')} My List</a>
-        <a href="${o.siteUrl}/wrapped" style="background:linear-gradient(90deg,rgba(232,69,60,0.08),transparent);">${icon('star', 'icon-small')} Wrapped</a>
-        <a href="${o.siteUrl}/announcements">${icon('megaphone', 'icon-small')} Announcements</a>
+        <a href="${o.siteUrl}/pages/announcements.php">${icon('megaphone', 'icon-small')} Announcements</a>
         <a href="${o.siteUrl}/pages/favorites.php">${icon('heart', 'icon-small')} Favorites</a>
         <a href="${o.siteUrl}/pages/importexport.php">${icon('box', 'icon-small')} Import / Export</a>
-        ${(cu.role === 'admin' || cu.role === 'owner') ? `<div class="dropdown-divider"></div><a href="${o.siteUrl}/admin/">${icon('shield', 'icon-small')} Admin Panel</a>` : ''}
+        ${(cu.role === 'admin' || cu.role === 'owner') ? `<div class="dropdown-divider"></div><a href="${o.siteUrl}/admin/index.php">${icon('shield', 'icon-small')} Admin Panel</a>` : ''}
         <div class="dropdown-divider"></div>
         <a href="${o.siteUrl}/logout">${icon('logout', 'icon-small')} Logout</a>
       </div>
@@ -186,8 +185,7 @@ ${bannerBlock}
     <li><a href="${o.siteUrl}/pages/seasonal.php" class="${active('seasonal')}">${icon('fire', 'icon-small')} Seasonal</a></li>
     <li><a href="${o.siteUrl}/pages/top.php" class="${active('top')}">${icon('trophy', 'icon-small')} Top</a></li>
     <li><a href="${o.siteUrl}/pages/schedule.php" class="${active('schedule')}">${icon('calendar', 'icon-small')} Schedule</a></li>
-    ${cu ? `<li><a href="${o.siteUrl}/feed" class="${active('feed')}">${icon('globe', 'icon-small')} Feed</a></li>
-    <li><a href="${o.siteUrl}/wrapped" class="${active('wrapped')}" style="background:linear-gradient(135deg,rgba(232,69,60,0.15),rgba(245,200,66,0.1));border-radius:6px;">${icon('star', 'icon-small')} Wrapped</a></li>` : ''}
+
   </ul>
   <form id="nav-search-form" class="nav-search">
     <input type="text" placeholder="Search anime..." name="q" autocomplete="off">
@@ -214,13 +212,12 @@ window.__siteUrl  = '${o.siteUrl}';
   <a href="${o.siteUrl}/pages/schedule.php" class="${active('schedule')}">${icon('calendar', 'icon-small')} Schedule</a>
   ${cu ? `
   <a href="${o.siteUrl}/pages/mylist.php" class="${active('mylist')}">${icon('list', 'icon-small')} My List</a>
-  <a href="${o.siteUrl}/feed" class="${active('feed')}">${icon('globe', 'icon-small')} Feed</a>
   <div class="mobile-menu-divider"></div>
-  <a href="${o.siteUrl}/u/${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
+  <a href="${o.siteUrl}/pages/user.php?u=${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
   <a href="${o.siteUrl}/pages/profile.php">${icon('edit', 'icon-small')} Edit Profile</a>
   <a href="${o.siteUrl}/pages/favorites.php">${icon('heart', 'icon-small')} Favorites</a>
   <a href="${o.siteUrl}/pages/importexport.php">${icon('box', 'icon-small')} Import / Export</a>
-  ${(cu.role === 'admin' || cu.role === 'owner') ? `<div class="mobile-menu-divider"></div><a href="${o.siteUrl}/admin/">${icon('shield', 'icon-small')} Admin Panel</a>` : ''}
+  ${(cu.role === 'admin' || cu.role === 'owner') ? `<div class="mobile-menu-divider"></div><a href="${o.siteUrl}/admin/index.php">${icon('shield', 'icon-small')} Admin Panel</a>` : ''}
   <div class="mobile-menu-divider"></div>
   <a href="${o.siteUrl}/logout">${icon('logout', 'icon-small')} Logout</a>` : `
   <div class="mobile-menu-divider"></div>
@@ -370,15 +367,15 @@ export function renderFooter(o: { siteUrl: string; currentUser: CurrentUser | nu
         <li><a href="${o.siteUrl}/pages/favorites.php">${icon('heart', 'icon-inline')} Favorites</a></li>
         <li><a href="${o.siteUrl}/pages/profile.php">${icon('edit', 'icon-inline')} Edit Profile</a></li>
         <li><a href="${o.siteUrl}/pages/importexport.php">${icon('box', 'icon-inline')} Import / Export</a></li>` : `
-        <li><a href="${o.siteUrl}/login">${icon('login', 'icon-inline')} Login</a></li>
+        <li><a href="#" onclick="requireLogin('login');return false;">${icon('login', 'icon-inline')} Login</a></li>
         <li><a href="${o.siteUrl}/pages/register.php">${icon('plus', 'icon-inline')} Sign Up</a></li>`}
       </ul>
     </div>
     <div class="footer-col">
       <h4 class="footer-heading">Info</h4>
       <ul class="footer-links">
-        <li><a href="${o.siteUrl}/announcements">${icon('megaphone', 'icon-inline')} Announcements</a></li>
-        <li><a href="${o.siteUrl}/terms">${icon('terms', 'icon-inline')} Terms of Use</a></li>
+        <li><a href="${o.siteUrl}/pages/announcements.php">${icon('megaphone', 'icon-inline')} Announcements</a></li>
+        <li><a href="${o.siteUrl}/pages/terms.php">${icon('terms', 'icon-inline')} Terms of Use</a></li>
         <li><a href="${o.siteUrl}/pages/privacy.php">${icon('shield', 'icon-inline')} Privacy Policy</a></li>
         <li><a href="mailto:abdullahalmahim585@gmail.com">${icon('mail', 'icon-inline')} Contact</a></li>
       </ul>

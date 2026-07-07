@@ -123,7 +123,7 @@ export function animeTailScript(animeDubConfirmed: boolean): string {
         </div>\`;
     } else {
       html += \`
-        <a href="\${siteUrl}/anime?id=\${entry.id}"
+        <a href="\${siteUrl}/pages/anime.php?id=\${entry.id}"
           style="display:flex;align-items:center;gap:10px;padding:9px 14px;color:var(--text-main);text-decoration:none;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .12s;"
           onmouseover="this.style.background='rgba(255,255,255,0.06)'"
           onmouseout="this.style.background=''"
@@ -139,7 +139,7 @@ export function animeTailScript(animeDubConfirmed: boolean): string {
     html += \`<div style="padding:5px 14px 3px;font-size:0.68rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);margin-top:2px;">Also in this series</div>\`;
     specialEntries.forEach(e => {
       html += \`
-        <a href="\${siteUrl}/anime?id=\${e.id}"
+        <a href="\${siteUrl}/pages/anime.php?id=\${e.id}"
           style="display:flex;align-items:center;gap:10px;padding:8px 14px;color:var(--text-main);text-decoration:none;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .12s;"
           onmouseover="this.style.background='rgba(255,255,255,0.06)'"
           onmouseout="this.style.background=''"
