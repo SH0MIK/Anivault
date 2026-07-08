@@ -546,7 +546,7 @@ listRoutes.get('/pages/notifications.php', async (c) => {
       const unreadStyle = !n.is_read ? 'border-color:rgba(232,69,60,0.25);background:rgba(232,69,60,0.04);' : '';
       return `
     <div class="card" style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;${unreadStyle}" id="notif-${n.id}">
-      <a href="${siteUrl}/u/${h(n.actor_name ?? '')}" style="flex-shrink:0;position:relative;">
+      <a href="${siteUrl}/pages/user.php?u=${h(n.actor_name ?? '')}" style="flex-shrink:0;position:relative;">
         <div class="nav-avatar" style="width:46px;height:46px;font-size:1.1rem;">
           ${n.actor_avatar ? `<img src="${h(n.actor_avatar)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : (n.actor_name ?? '?').charAt(0).toUpperCase()}
         </div>

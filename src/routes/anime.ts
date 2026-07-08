@@ -164,7 +164,7 @@ animeRoutes.get('/pages/anime.php', async (c) => {
 
       ${anime.genres?.length ? `
       <div class="flex flex-wrap mb-2" style="gap:6px;">
-        ${anime.genres.map((g) => `<a href="${siteUrl}/browse?genre=${g.mal_id}" class="genre-tag">${h(g.name)}</a>`).join('')}
+        ${anime.genres.map((g) => `<a href="${siteUrl}/pages/browse.php?genre=${g.mal_id}" class="genre-tag">${h(g.name)}</a>`).join('')}
       </div>` : ''}
 
       <div class="flex gap-1 flex-wrap" style="gap:8px;margin-top:1rem;">

@@ -271,7 +271,7 @@ watchRoutes.get('/pages/watch.php', async (c) => {
     watchBase, epNums, curEp: epNum, totalEpsN: totalEps,
   });
   html += `<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>`;
-  html += `<script>${playerScript(image || coverSm, animeId, epNum, siteUrl)}</script>`;
+  html += `<script>${playerScript(animeId, epNum, siteUrl)}</script>`;
   html += `</div>`;
 
   await session.save(c, lifetime);

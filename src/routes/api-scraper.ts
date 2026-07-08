@@ -62,7 +62,7 @@ scraperRoutes.get('/api/animeheaven_stream.php', async (c) => {
   const epNum = parseInt(c.req.query('ep') ?? '0', 10) || 0;
   if (!animeId || !epNum) { await session.save(c, lifetime); return c.json({ error: 'Missing anime or ep' }, 400); }
 
-  const { ok, code, data } = await fetchJson(`${SENSHI_BASE}/watch/animeheaven/mal-${animeId}/${epNum}/sub`, 12000);
+  const { ok, code, data } = await fetchJson(`${SENSHI_BASE}/watch/animeheaven/mal-${animeId}/${epNum}/sub`, 20000);
   await session.save(c, lifetime);
   if (!ok) return c.json({ error: data?.error ?? `Scraper API error HTTP ${code}` });
   const mp4 = data?.mp4ProxyUrl ?? data?.streamUrl ?? data?.mp4 ?? null;
@@ -154,10 +154,14 @@ scraperRoutes.get('/api/anikoto_stream.php', async (c) => {
   const server = (c.req.query('server') ?? '').trim();
   if (!animeId || !epNum) { await session.save(c, lifetime); return c.json({ error: 'Missing anime or ep' }, 400); }
 
-  let watchUrl = `${ANIKOTO_MIRURO_BASE}/watch/anikoto/${animeId}/${epNum}/${audio}`;
+  // Anikoto moved from the anivault-scraper Railway service to the same
+  // one senshi_stream.php uses, and now expects a "mal-" prefixed ID.
+  let watchUrl = `${SENSHI_BASE}/watch/anikoto/mal-${animeId}/${epNum}/${audio}`;
   if (server !== '') watchUrl += `?server=${encodeURIComponent(server)}`;
 
-  const { ok, code, data } = await fetchJson(watchUrl, 15000);
+  // 180s timeout: this scraper can be slow on a cold start, and unlike PHP's
+  // max_execution_time, Workers doesn't kill the request during fetch I/O wait.
+  const { ok, code, data } = await fetchJson(watchUrl, 180000);
   await session.save(c, lifetime);
   if (!ok) return c.json({ error: data?.error ?? `Anikoto fetch failed HTTP ${code}` });
 
