@@ -25,6 +25,22 @@ function buildBackupUrl(server, audio) {
     }
 }
 
+// Stops whatever is currently playing so its audio can't keep going in
+// the background while we fetch the next server (or while an error is
+// shown because the fetch failed). Call this FIRST, before doing
+// anything else, in every switchTo* function.
+function stopCurrentVideo() {
+    const vid = document.getElementById('sp-video');
+    if (vid) {
+        try { vid.pause(); } catch(e) {}
+        vid.removeAttribute('src');
+        try { vid.load(); } catch(e) {}
+    }
+    if (window.SenshiPlayer && window.SenshiPlayer.destroy) {
+        try { window.SenshiPlayer.destroy(); } catch(e) {}
+    }
+}
+
 function updateActiveServerButton(serverName, audio) {
     document.querySelectorAll('.server-btn').forEach(b => b.classList.remove('active'));
     // Only activate buttons inside the matching tab panel
@@ -64,6 +80,10 @@ function switchToAnimeHeaven(audio) {
     const pw = document.getElementById('watch-player-wrap');
     if (!pw) return;
 
+    // Stop whatever's currently playing FIRST so its audio doesn't keep
+    // running underneath the loading spinner / error state below.
+    stopCurrentVideo();
+
     // Detach player node first so innerHTML='' doesn't destroy it
     const sp = document.getElementById('senshi-player-root');
     if (sp && sp.parentNode) sp.parentNode.removeChild(sp);
@@ -92,48 +112,63 @@ function switchToAnimeHeaven(audio) {
     if (window.SenshiPlayer) {
         // Signal player to show loading spinner
         const spinEl = document.getElementById('sp-spinner');
-        if (spinEl) spinEl.classList.add('show');
+        if (spinEl) spinEl.classList.remove('hide');
         const errEl = document.getElementById('sp-error');
         if (errEl) errEl.classList.remove('show');
         const preplay = document.getElementById('sp-preplay');
         if (preplay) preplay.classList.add('hide');
     }
 
+    function applyAnimeHeavenResult(d) {
+        if (d.error || !d.mp4) {
+            if (window.SenshiPlayer) {
+                const errMsg = document.getElementById('sp-err-msg');
+                if (errMsg) errMsg.textContent = d.error ? \`AnimeHeaven: \${d.error}\` : 'No stream URL returned.';
+                const errEl = document.getElementById('sp-error');
+                if (errEl) errEl.classList.add('show');
+                const spinEl = document.getElementById('sp-spinner');
+                if (spinEl) spinEl.classList.add('hide');
+            }
+            return;
+        }
+        // Load MP4 directly into the custom player's video element
+        const vid = document.getElementById('sp-video');
+        if (vid) {
+            vid.src = d.mp4;
+            vid.load();
+            vid.play().catch(() => {});
+        }
+        const spinEl = document.getElementById('sp-spinner');
+        if (spinEl) spinEl.classList.add('hide');
+        // Hide HLS badge since this is MP4
+        const badge = document.getElementById('sp-hls-badge');
+        if (badge) badge.textContent = 'MP4';
+    }
+
+    // Reuse the probe's response (from checkAnimeHeaven) if it's fresh,
+    // instead of hitting the scraper again for the same anime/ep/audio —
+    // requesting AnimeHeaven twice back-to-back invalidates the session
+    // token it just handed out, which is what was causing "plays, then
+    // errors a moment later" right after the auto-activated first load.
+    window._animeheavenCache = window._animeheavenCache || {};
+    const cached = window._animeheavenCache[audio];
+    if (cached && (Date.now() - cached.ts) < 8000) {
+        delete window._animeheavenCache[audio];
+        applyAnimeHeavenResult(cached.data);
+        return;
+    }
+
     // Fetch MP4 URL
     fetch(\`${siteUrl}/api/animeheaven_stream.php?anime=${animeId}&ep=${epNum}&audio=\${audio}\`)
         .then(r => r.json())
-        .then(d => {
-            if (d.error || !d.mp4) {
-                if (window.SenshiPlayer) {
-                    const errMsg = document.getElementById('sp-err-msg');
-                    if (errMsg) errMsg.textContent = d.error ? \`AnimeHeaven: \${d.error}\` : 'No stream URL returned.';
-                    const errEl = document.getElementById('sp-error');
-                    if (errEl) errEl.classList.add('show');
-                    const spinEl = document.getElementById('sp-spinner');
-                    if (spinEl) spinEl.classList.remove('show');
-                }
-                return;
-            }
-            // Load MP4 directly into the custom player's video element
-            const vid = document.getElementById('sp-video');
-            if (vid) {
-                vid.src = d.mp4;
-                vid.load();
-                vid.play().catch(() => {});
-            }
-            const spinEl = document.getElementById('sp-spinner');
-            if (spinEl) spinEl.classList.remove('show');
-            // Hide HLS badge since this is MP4
-            const badge = document.getElementById('sp-hls-badge');
-            if (badge) badge.textContent = 'MP4';
-        })
+        .then(applyAnimeHeavenResult)
         .catch(() => {
             const errMsg = document.getElementById('sp-err-msg');
             if (errMsg) errMsg.textContent = 'Could not reach stream server.';
             const errEl = document.getElementById('sp-error');
             if (errEl) errEl.classList.add('show');
             const spinEl = document.getElementById('sp-spinner');
-            if (spinEl) spinEl.classList.remove('show');
+            if (spinEl) spinEl.classList.add('hide');
         });
 }
 
@@ -141,6 +176,10 @@ function switchToAnimeHeaven(audio) {
 function switchToMiruro(providerName, audio) {
     const pw = document.getElementById('watch-player-wrap');
     if (!pw) return;
+
+    // Stop whatever's currently playing FIRST so its audio doesn't keep
+    // running underneath the loading spinner / error state below.
+    stopCurrentVideo();
 
     // Detach player node first so innerHTML='' doesn't destroy it
     const sp = document.getElementById('senshi-player-root');
@@ -167,7 +206,7 @@ function switchToMiruro(providerName, audio) {
     // Show spinner
     if (window.SenshiPlayer) window.SenshiPlayer.destroy();
     const spinEl = document.getElementById('sp-spinner');
-    if (spinEl) spinEl.classList.add('show');
+    if (spinEl) spinEl.classList.remove('hide');
     const errEl = document.getElementById('sp-error');
     if (errEl) errEl.classList.remove('show');
     const preplay = document.getElementById('sp-preplay');
@@ -183,7 +222,7 @@ function switchToMiruro(providerName, audio) {
                 const errMsg = document.getElementById('sp-err-msg');
                 if (errMsg) errMsg.textContent = d.error ? \`Miruro (\${providerName}): \${d.error}\` : 'No stream URL returned.';
                 if (errEl) errEl.classList.add('show');
-                if (spinEl) spinEl.classList.remove('show');
+                if (spinEl) spinEl.classList.add('hide');
                 return;
             }
             if (window.SenshiPlayer) window.SenshiPlayer.load(d.m3u8);
@@ -197,7 +236,92 @@ function switchToMiruro(providerName, audio) {
             const errMsg = document.getElementById('sp-err-msg');
             if (errMsg) errMsg.textContent = 'Could not reach stream server.';
             if (errEl) errEl.classList.add('show');
-            if (spinEl) spinEl.classList.remove('show');
+            if (spinEl) spinEl.classList.add('hide');
+        });
+}
+
+// ── Anikoto (HLS via fetch for a specific provider, with subtitles) ──────
+function switchToAnikoto(providerName, audio) {
+    const pw = document.getElementById('watch-player-wrap');
+    if (!pw) return;
+
+    // Stop whatever's currently playing FIRST so its audio doesn't keep
+    // running underneath the loading spinner / error state below.
+    stopCurrentVideo();
+
+    const sp = document.getElementById('senshi-player-root');
+    if (sp && sp.parentNode) sp.parentNode.removeChild(sp);
+
+    pw.style.opacity = '0';
+    removeRyuShield();
+    const oldShield = document.getElementById('universal-click-shield');
+    if (oldShield) { clearTimeout(_uShieldTimer); oldShield.remove(); }
+
+    pw.style.aspectRatio  = 'unset';
+    pw.style.overflow     = 'visible';
+    pw.style.background   = 'transparent';
+    pw.style.borderRadius = '14px';
+    pw.innerHTML = '';
+
+    if (sp) {
+        sp.style.cssText = 'display:block;width:100%;';
+        pw.appendChild(sp);
+    }
+    pw.style.opacity = '1';
+
+    if (window.SenshiPlayer) window.SenshiPlayer.destroy();
+    const spinEl = document.getElementById('sp-spinner');
+    if (spinEl) spinEl.classList.remove('hide');
+    const errEl = document.getElementById('sp-error');
+    if (errEl) errEl.classList.remove('show');
+    const preplay = document.getElementById('sp-preplay');
+    if (preplay) preplay.classList.add('hide');
+    const badge = document.getElementById('sp-hls-badge');
+    if (badge) badge.textContent = 'HLS';
+
+    function applyAnikotoResult(d) {
+        if (d.error || !d.m3u8) {
+            const errMsg = document.getElementById('sp-err-msg');
+            if (errMsg) errMsg.textContent = d.error ? \`Anikoto (\${providerName}): \${d.error}\` : 'No stream URL returned.';
+            if (errEl) errEl.classList.add('show');
+            if (spinEl) spinEl.classList.add('hide');
+            return;
+        }
+        // Anikoto's stream doesn't embed subtitles in the m3u8 itself
+        // (unlike Senshi) — they come back as a separate \`subtitles\`
+        // array that has to be attached as external <track> elements.
+        if (window.SenshiPlayer && window.SenshiPlayer.loadWithSubs) {
+            window.SenshiPlayer.loadWithSubs(d.m3u8, d.subtitles || []);
+        } else if (window.SenshiPlayer) {
+            window.SenshiPlayer.load(d.m3u8);
+        } else {
+            const vid = document.getElementById('sp-video');
+            if (vid) { vid.src = d.m3u8; vid.load(); vid.play().catch(()=>{}); }
+        }
+    }
+
+    // Reuse the probe's response if we have one from the last few
+    // seconds, instead of hitting the scraper again for the same
+    // provider — requesting the same provider twice back-to-back is
+    // what was causing "plays, then errors a moment later" (the embed
+    // host invalidating a session/token it just handed out).
+    window._anikotoCache = window._anikotoCache || {};
+    const cacheKey = audio + '::' + providerName;
+    const cached = window._anikotoCache[cacheKey];
+    if (cached && (Date.now() - cached.ts) < 8000) {
+        delete window._anikotoCache[cacheKey];
+        applyAnikotoResult(cached.data);
+        return;
+    }
+
+    fetch(\`${siteUrl}/api/anikoto_stream.php?anime=${animeId}&ep=${epNum}&audio=\${audio}&server=\${encodeURIComponent(providerName)}\`)
+        .then(r => r.json())
+        .then(applyAnikotoResult)
+        .catch(() => {
+            const errMsg = document.getElementById('sp-err-msg');
+            if (errMsg) errMsg.textContent = 'Could not reach stream server.';
+            if (errEl) errEl.classList.add('show');
+            if (spinEl) spinEl.classList.add('hide');
         });
 }
 
@@ -214,10 +338,20 @@ function switchToServer(serverName, audio = currentAudio) {
         return;
     }
 
-    // ── Miruro providers (HLS) ───────────────────────────────────────────
-    if (serverName.startsWith('miruro-')) {
-        const providerName = serverName.slice('miruro-'.length); // e.g. "bonk"
-        switchToMiruro(providerName, audio);
+    // ── Miruro providers (HLS) — temporarily disabled, Miruro is down ─────
+    // if (serverName.startsWith('miruro-')) {
+    //     const providerName = serverName.slice('miruro-'.length); // e.g. "bonk"
+    //     switchToMiruro(providerName, audio);
+    //     currentServer = serverName;
+    //     currentAudio  = audio;
+    //     updateActiveServerButton(serverName, audio);
+    //     return;
+    // }
+
+    // ── Anikoto providers (HLS + subtitles) ────────────────────────────────
+    if (serverName.startsWith('anikoto-')) {
+        const providerName = serverName.slice('anikoto-'.length);
+        switchToAnikoto(providerName, audio);
         currentServer = serverName;
         currentAudio  = audio;
         updateActiveServerButton(serverName, audio);
@@ -226,6 +360,10 @@ function switchToServer(serverName, audio = currentAudio) {
 
     // ── Senshi server (volt slot) — standalone player ────────────────────
     if (serverName === 'volt') {
+        // Stop whatever's currently playing FIRST so its audio doesn't
+        // keep running underneath the loading spinner / error state.
+        stopCurrentVideo();
+
         // Detach first so innerHTML='' doesn't destroy sp
         const sp = document.getElementById('senshi-player-root');
         if (sp && sp.parentNode) sp.parentNode.removeChild(sp);
@@ -322,9 +460,23 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         return btn;
     }
 
+    // Same reuse-the-probe-response pattern as Anikoto below — hitting
+    // animeheaven_stream.php twice back-to-back (once here to confirm it
+    // works, then again when switchToAnimeHeaven actually loads it) was
+    // invalidating the session/token AnimeHeaven hands out, so the button
+    // would show up, auto-activate, then immediately error out with
+    // "Could not reach stream server." Switching servers and back masked
+    // it because that's just a single fresh request outside the race.
     function checkAnimeHeaven(audio) {
         return fetch(\`\${SITE}/api/animeheaven_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}\`)
-            .then(r => r.json()).then(d => !d.error && !!d.mp4).catch(() => false);
+            .then(r => r.json()).then(d => {
+                const ok = !d.error && !!d.mp4;
+                if (ok) {
+                    window._animeheavenCache = window._animeheavenCache || {};
+                    window._animeheavenCache[audio] = { data: d, ts: Date.now() };
+                }
+                return ok;
+            }).catch(() => false);
     }
     function checkSenshi(audio) {
         return fetch(\`\${SITE}/api/senshi_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}\`)
@@ -348,6 +500,38 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
     function checkMiruroProvider(provider, audio) {
         return fetch(\`\${SITE}/api/miruro_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}&server=\${encodeURIComponent(provider)}\`)
             .then(r => r.json()).then(d => !d.error && !!d.m3u8).catch(() => false);
+    }
+
+    // Same pattern as Miruro, but for Anikoto (which also returns subtitles,
+    // handled separately in switchToAnikoto/loadWithSubs — no change needed
+    // to the discovery/probing logic here).
+    function fetchAnikotoList(audio, attempt = 1) {
+        return fetch(\`\${SITE}/api/anikoto_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}\`)
+            .then(r => r.json())
+            .then(d => (d.servers || []).filter(s => s.type === audio))
+            .catch(() => [])
+            .then(list => {
+                if (list.length > 0 || attempt >= 3) return list;
+                return new Promise(res => setTimeout(res, attempt * 1500))
+                    .then(() => fetchAnikotoList(audio, attempt + 1));
+            });
+    }
+    function checkAnikotoProvider(provider, audio) {
+        return fetch(\`\${SITE}/api/anikoto_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}&server=\${encodeURIComponent(provider)}\`)
+            .then(r => r.json()).then(d => {
+                const ok = !d.error && !!d.m3u8;
+                // Stash the response so the auto-activated first play
+                // (triggered right below in markServerFound) can reuse it
+                // instead of firing a second identical request at the
+                // scraper for the same provider — some embed hosts hand
+                // out session/token-locked links that don't survive being
+                // requested twice in a row.
+                if (ok) {
+                    window._anikotoCache = window._anikotoCache || {};
+                    window._anikotoCache[audio + '::' + provider.toLowerCase().trim()] = { data: d, ts: Date.now() };
+                }
+                return ok;
+            }).catch(() => false);
     }
 
     // ── Incremental probing ───────────────────────────────────────────────
@@ -433,12 +617,18 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         }
     }
 
-    // AnimeHeaven(sub) + Senshi(sub) + Miruro-list(sub) = 3 sub tasks.
-    // Senshi(dub) + Miruro-list(dub) = 2 dub tasks. AnimeHeaven is sub-only
+    // AnimeHeaven(sub) + Anikoto-list(sub) = 2 sub tasks.
+    // Anikoto-list(dub) = 1 dub task. AnimeHeaven is sub-only
     // (api/animeheaven_stream.php ignores the audio param), so it never
     // contributes a dub task.
-    subPending = 3;
-    dubPending = 2;
+    // (Senshi is temporarily disabled — removed from the watch page for
+    // now; flip it back on by un-commenting the two checkSenshi(...) calls
+    // below and restoring subPending=3 / dubPending=2.)
+    // (Miruro is temporarily disabled — it's down upstream — so it's been
+    // swapped out for Anikoto here rather than removed entirely; flip this
+    // back by swapping the invocation block below back to fetchMiruroList.)
+    subPending = 2;
+    dubPending = 1;
 
     // ── SERVER DISPLAY NAMES ─────────────────────────────────────────────────
     // Change any value here to rename that button on the watch page.
@@ -461,30 +651,52 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
     };
 
     checkAnimeHeaven('sub').then(ok => { if (ok) markServerFound('sub', 'animeheaven', SERVER_NAMES.animeheaven); subTaskDone(); });
-    checkSenshi('sub').then(ok => { if (ok) markServerFound('sub', 'volt', SERVER_NAMES.senshi); subTaskDone(); });
-    checkSenshi('dub').then(ok => { if (ok) markServerFound('dub', 'volt', SERVER_NAMES.senshi); dubTaskDone(); });
+    // Senshi — temporarily removed from the watch page.
+    // checkSenshi('sub').then(ok => { if (ok) markServerFound('sub', 'volt', SERVER_NAMES.senshi); subTaskDone(); });
+    // checkSenshi('dub').then(ok => { if (ok) markServerFound('dub', 'volt', SERVER_NAMES.senshi); dubTaskDone(); });
 
-    fetchMiruroList('sub').then(list => {
-        // Add the per-provider tasks BEFORE closing out the list-fetch task
-        // itself, so subPending never momentarily drops to 0 while these
-        // provider checks are still in flight.
+    // Miruro — temporarily disabled (upstream 403s from Cloudflare, not our bug).
+    // fetchMiruroList('sub').then(list => {
+    //     list.map(s => s.name).forEach(p => {
+    //         const pKey = p.toLowerCase().trim();
+    //         subPending++;
+    //         checkMiruroProvider(p, 'sub').then(ok => {
+    //             if (ok) markServerFound('sub', \`miruro-\${pKey}\`, SERVER_NAMES[pKey] ?? pKey.charAt(0).toUpperCase() + pKey.slice(1));
+    //             subTaskDone();
+    //         });
+    //     });
+    //     subTaskDone();
+    // });
+    // fetchMiruroList('dub').then(list => {
+    //     list.map(s => s.name).forEach(p => {
+    //         const pKey = p.toLowerCase().trim();
+    //         dubPending++;
+    //         checkMiruroProvider(p, 'dub').then(ok => {
+    //             if (ok) markServerFound('dub', \`miruro-\${pKey}\`, SERVER_NAMES[pKey] ?? pKey.charAt(0).toUpperCase() + pKey.slice(1));
+    //             dubTaskDone();
+    //         });
+    //     });
+    //     dubTaskDone();
+    // });
+
+    fetchAnikotoList('sub').then(list => {
         list.map(s => s.name).forEach(p => {
             const pKey = p.toLowerCase().trim();
             subPending++;
-            checkMiruroProvider(p, 'sub').then(ok => {
-                if (ok) markServerFound('sub', \`miruro-\${pKey}\`, SERVER_NAMES[pKey] ?? pKey.charAt(0).toUpperCase() + pKey.slice(1));
+            checkAnikotoProvider(p, 'sub').then(ok => {
+                if (ok) markServerFound('sub', \`anikoto-\${pKey}\`, SERVER_NAMES[pKey] ?? ('AK-' + (pKey.charAt(0).toUpperCase() + pKey.slice(1))));
                 subTaskDone();
             });
         });
         subTaskDone();
     });
 
-    fetchMiruroList('dub').then(list => {
+    fetchAnikotoList('dub').then(list => {
         list.map(s => s.name).forEach(p => {
             const pKey = p.toLowerCase().trim();
             dubPending++;
-            checkMiruroProvider(p, 'dub').then(ok => {
-                if (ok) markServerFound('dub', \`miruro-\${pKey}\`, SERVER_NAMES[pKey] ?? pKey.charAt(0).toUpperCase() + pKey.slice(1));
+            checkAnikotoProvider(p, 'dub').then(ok => {
+                if (ok) markServerFound('dub', \`anikoto-\${pKey}\`, SERVER_NAMES[pKey] ?? ('AK-' + (pKey.charAt(0).toUpperCase() + pKey.slice(1))));
                 dubTaskDone();
             });
         });
