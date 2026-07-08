@@ -10,6 +10,7 @@
 import { h } from '../lib/helpers';
 import { icon } from '../lib/icons';
 import { ICON_SPRITE } from '../lib/icon-sprite';
+import { FOOTER_CSS } from './footer-css';
 
 export interface CurrentUser {
   id: number;
@@ -336,6 +337,8 @@ export function renderFooter(o: { siteUrl: string; currentUser: CurrentUser | nu
   const year = new Date().getUTCFullYear();
   return `
 </main>
+
+<style>${FOOTER_CSS}</style>
 
 <footer class="footer">
   <div class="footer-grid">
