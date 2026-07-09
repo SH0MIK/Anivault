@@ -1,7 +1,9 @@
-// Ports the streaming-provider proxy endpoints: senshi_stream.php,
-// animeheaven_stream.php, miruro_stream.php, miruro_stream_cached.php,
+// Ports the streaming-provider proxy endpoints: animeheaven_stream.php,
 // anikoto_stream.php, server_check.php, server_check_stream.php (SSE),
 // dub_check.php, dub_report.php, embed.php, discord_user.php.
+// senshi_stream.php, miruro_stream.php, and miruro_stream_cached.php were
+// removed — both providers stopped working upstream and are no longer
+// shown on the watch page (see watch-script1.ts).
 // curl -> fetch throughout. api/series.php was NOT ported: it calls
 // JikanAPI::getAnimeSeries(), a method that doesn't exist anywhere in the
 // PHP codebase (would have fatally errored if ever hit), and nothing in
@@ -31,27 +33,6 @@ async function fetchJson(url: string, timeoutMs = 12000): Promise<{ ok: boolean;
   }
 }
 
-// ── api/senshi_stream.php ──────────────────────────────────────────────────
-scraperRoutes.get('/api/senshi_stream.php', async (c) => {
-  const db = new Db(c.env.DB);
-  const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
-  const session = await Session.load(c, db, lifetime);
-  const auth = new Auth(db, session, c.env as any, c.req.header('cf-connecting-ip') ?? 'unknown');
-  if (!auth.check()) { await session.save(c, lifetime); return c.json({ error: 'Unauthorized' }, 401); }
-
-  const animeId = parseInt(c.req.query('anime') ?? '0', 10) || 0;
-  const epNum = parseInt(c.req.query('ep') ?? '0', 10) || 0;
-  const audio = ['sub', 'dub'].includes(c.req.query('audio') ?? '') ? c.req.query('audio')! : 'sub';
-  if (!animeId || !epNum) { await session.save(c, lifetime); return c.json({ error: 'Missing anime or ep' }, 400); }
-
-  const { ok, code, data } = await fetchJson(`${SENSHI_BASE}/watch/senshi/mal-${animeId}/${epNum}/${audio}`, 10000);
-  await session.save(c, lifetime);
-  if (!ok) return c.json({ error: data?.error ?? `API error HTTP ${code}` });
-  const m3u8 = data?.hlsProxyUrl ?? data?.m3u8 ?? null;
-  if (!m3u8) return c.json({ error: 'No stream URL in response' });
-  return c.json({ m3u8 });
-});
-
 // ── api/animeheaven_stream.php ─────────────────────────────────────────────
 scraperRoutes.get('/api/animeheaven_stream.php', async (c) => {
   const db = new Db(c.env.DB);
@@ -68,78 +49,6 @@ scraperRoutes.get('/api/animeheaven_stream.php', async (c) => {
   const mp4 = data?.mp4ProxyUrl ?? data?.streamUrl ?? data?.mp4 ?? null;
   if (!mp4) return c.json({ error: 'No stream URL in response', raw: data });
   return c.json({ mp4, playbackMode: 'mp4' });
-});
-
-// ── api/miruro_stream.php ──────────────────────────────────────────────────
-scraperRoutes.get('/api/miruro_stream.php', async (c) => {
-  const db = new Db(c.env.DB);
-  const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
-  const session = await Session.load(c, db, lifetime);
-
-  const animeId = parseInt(c.req.query('anime') ?? '0', 10) || 0;
-  const epNum = parseInt(c.req.query('ep') ?? '0', 10) || 0;
-  const audio = ['sub', 'dub', 'raw'].includes(c.req.query('audio') ?? '') ? c.req.query('audio')! : 'sub';
-  const server = (c.req.query('server') ?? '').trim();
-  if (!animeId || !epNum) { await session.save(c, lifetime); return c.json({ error: 'Missing anime or ep' }, 400); }
-
-  if (server === '') {
-    const { ok, code, data } = await fetchJson(`${SENSHI_BASE}/servers?malId=${animeId}&ep=${epNum}&type=${audio}&source=miruro`, 12000);
-    await session.save(c, lifetime);
-    if (!ok) return c.json({ error: `Miruro servers fetch failed HTTP ${code}` });
-    const servers = (data?.servers ?? []).map((s: any) => {
-      const name = s.name ?? '';
-      const m = name.match(/^(.+?)-(sub|dub|raw)$/);
-      return { name: m ? m[1] : name, type: audio };
-    });
-    return c.json({ servers });
-  }
-
-  const { ok, code, data } = await fetchJson(`${SENSHI_BASE}/watch/miruro/mal-${animeId}/${epNum}/${audio}?server=${encodeURIComponent(server)}`, 15000);
-  await session.save(c, lifetime);
-  if (!ok) return c.json({ error: data?.error ?? `Miruro stream fetch failed HTTP ${code}` });
-  const m3u8 = data?.hlsProxyUrl ?? data?.m3u8 ?? null;
-  if (!m3u8) return c.json({ error: 'No HLS URL in response' });
-  return c.json({ m3u8, server: data?.server ?? server });
-});
-
-// ── api/miruro_stream_cached.php ───────────────────────────────────────────
-scraperRoutes.get('/api/miruro_stream_cached.php', async (c) => {
-  const db = new Db(c.env.DB);
-  const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
-  const session = await Session.load(c, db, lifetime);
-  const auth = new Auth(db, session, c.env as any, c.req.header('cf-connecting-ip') ?? 'unknown');
-  if (!auth.check()) { await session.save(c, lifetime); return c.json({ error: 'Unauthorized' }, 401); }
-
-  const animeId = parseInt(c.req.query('anime') ?? '0', 10) || 0;
-  const epNum = parseInt(c.req.query('ep') ?? '0', 10) || 0;
-  const audio = ['sub', 'dub', 'raw'].includes(c.req.query('audio') ?? '') ? c.req.query('audio')! : 'sub';
-  const server = (c.req.query('server') ?? '').trim();
-  const refresh = !!c.req.query('refresh');
-  if (!animeId || !epNum || server === '') { await session.save(c, lifetime); return c.json({ error: 'Missing anime, ep, or server' }, 400); }
-
-  if (!refresh) {
-    const row = await db.fetchOne<{ m3u8: string }>(
-      'SELECT m3u8 FROM miruro_stream_cache WHERE mal_id=? AND episode_num=? AND audio=? AND server=? AND is_active=1',
-      [animeId, epNum, audio, server]
-    );
-    if (row) { await session.save(c, lifetime); return c.json({ m3u8: row.m3u8, cached: true }); }
-  }
-
-  const { ok, code, data } = await fetchJson(`${SENSHI_BASE}/watch/miruro/mal-${animeId}/${epNum}/${audio}?server=${encodeURIComponent(server)}`, 15000);
-  if (!ok) { await session.save(c, lifetime); return c.json({ error: data?.error ?? `Miruro fetch failed HTTP ${code}` }); }
-  const m3u8 = data?.hlsProxyUrl ?? data?.m3u8 ?? null;
-  if (!m3u8) { await session.save(c, lifetime); return c.json({ error: 'No HLS URL in response' }); }
-
-  try {
-    await db.query(
-      `INSERT INTO miruro_stream_cache (mal_id, episode_num, audio, server, m3u8, is_active) VALUES (?,?,?,?,?,1)
-       ON CONFLICT(mal_id, episode_num, audio, server) DO UPDATE SET m3u8=excluded.m3u8, is_active=1, updated_at=datetime('now')`,
-      [animeId, epNum, audio, server, m3u8]
-    );
-  } catch { /* non-fatal, stream still works uncached */ }
-
-  await session.save(c, lifetime);
-  return c.json({ m3u8, cached: false });
 });
 
 // ── api/anikoto_stream.php ─────────────────────────────────────────────────
