@@ -319,7 +319,7 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
 
     const SITE  = '${siteUrl}';
     const ANIME = ${animeId};
-    const EP    = <?= (int)$epNum ?>;
+    const EP    = ${epNum};
 
     function makeBtn(serverKey, label, badge) {
         const btn = document.createElement('button');
@@ -555,7 +555,7 @@ function filterEps(q){
       var eps=(data&&data.data&&data.data.Media&&data.data.Media.streamingEpisodes)||[];
       ${isLoggedIn ? 'var cur=null;' : ''}
       eps.forEach(function(ep){var m=(ep.title||'').match(/Episode\\s+(\\d+)/i);if(!m||!ep.thumbnail)return;var n=parseInt(m[1]);applyThumb(n,ep.thumbnail);${isLoggedIn ? `if(n===${epNum})cur=ep.thumbnail;` : ''}});
-      <?php if(Auth::check()):?>if(cur)fetch('${siteUrl}/api/watch_history.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set_ep_info',anime_id:<?=$animeId?>,episode_num:<?=$epNum?>,ep_thumb:cur})}).catch(function(){});<?php endif;?>
+      ${isLoggedIn ? `if(cur)fetch('${siteUrl}/api/watch_history.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'set_ep_info',anime_id:${animeId},episode_num:${epNum},ep_thumb:cur})}).catch(function(){});` : ''}
     }catch(e){}
     try{var ov=await fetch('/api/episode_override.php?anime_id='+animeId+'&all=1');if(ov.ok){var od=await ov.json();(od.overrides||[]).forEach(function(o){if(o.image_url)applyThumb(o.episode_num,o.image_url);});}}catch(e){}
   }
