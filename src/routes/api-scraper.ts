@@ -34,17 +34,19 @@ async function fetchJson(url: string, timeoutMs = 12000): Promise<{ ok: boolean;
 }
 
 // ── api/animeheaven_stream.php ─────────────────────────────────────────────
+// Read-only proxy — doesn't set/change anything, so it doesn't touch the
+// session at all. The watch page fires this alongside several Anikoto
+// probes at once; every one of those used to do a D1 read+write against
+// the SAME session row, and concurrent writes to one row queue up in D1
+// instead of running in parallel. That's what was causing the whole
+// "Finding the best server..." probe burst to crawl even though each
+// request is fast in isolation.
 scraperRoutes.get('/api/animeheaven_stream.php', async (c) => {
-  const db = new Db(c.env.DB);
-  const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
-  const session = await Session.load(c, db, lifetime);
-
   const animeId = parseInt(c.req.query('anime') ?? '0', 10) || 0;
   const epNum = parseInt(c.req.query('ep') ?? '0', 10) || 0;
-  if (!animeId || !epNum) { await session.save(c, lifetime); return c.json({ error: 'Missing anime or ep' }, 400); }
+  if (!animeId || !epNum) return c.json({ error: 'Missing anime or ep' }, 400);
 
   const { ok, code, data } = await fetchJson(`${SENSHI_BASE}/watch/animeheaven/mal-${animeId}/${epNum}/sub`, 20000);
-  await session.save(c, lifetime);
   if (!ok) return c.json({ error: data?.error ?? `Scraper API error HTTP ${code}` });
   const mp4 = data?.mp4ProxyUrl ?? data?.streamUrl ?? data?.mp4 ?? null;
   if (!mp4) return c.json({ error: 'No stream URL in response', raw: data });
@@ -52,31 +54,24 @@ scraperRoutes.get('/api/animeheaven_stream.php', async (c) => {
 });
 
 // ── api/anikoto_stream.php ─────────────────────────────────────────────────
+// ── api/anikoto_stream.php ─────────────────────────────────────────────────
+// Same reasoning as animeheaven_stream.php above: read-only proxy, no
+// session data to persist, and this is the one that gets hit MOST often
+// per page load (once for the list, then once per provider found) — so
+// it was the biggest contributor to the D1 session-row write pileup.
 scraperRoutes.get('/api/anikoto_stream.php', async (c) => {
-  const db = new Db(c.env.DB);
-  const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
-  const session = await Session.load(c, db, lifetime);
-
   const animeId = parseInt(c.req.query('anime') ?? '0', 10) || 0;
   const epNum = parseInt(c.req.query('ep') ?? '0', 10) || 0;
   const audio = ['sub', 'dub', 'raw'].includes(c.req.query('audio') ?? '') ? c.req.query('audio')! : 'sub';
   const server = (c.req.query('server') ?? '').trim();
-  if (!animeId || !epNum) { await session.save(c, lifetime); return c.json({ error: 'Missing anime or ep' }, 400); }
+  if (!animeId || !epNum) return c.json({ error: 'Missing anime or ep' }, 400);
 
   // Anikoto moved from the anivault-scraper Railway service to the same
   // one senshi_stream.php uses, and now expects a "mal-" prefixed ID.
   let watchUrl = `${SENSHI_BASE}/watch/anikoto/mal-${animeId}/${epNum}/${audio}`;
   if (server !== '') watchUrl += `?server=${encodeURIComponent(server)}`;
 
-  // 20s timeout to match AnimeHeaven's. This used to be 180s to tolerate
-  // Railway cold starts, but that meant EVERY probe (the initial list call,
-  // plus a separate call per provider found) could each individually hang
-  // for up to 3 minutes before failing — which is what made the watch page
-  // feel stuck on "Finding the best server...". A genuine cold start will
-  // now surface as a fast failure instead of a multi-minute hang; the page
-  // just falls back to AnimeHeaven (or shows "no servers found") sooner.
   const { ok, code, data } = await fetchJson(watchUrl, 20000);
-  await session.save(c, lifetime);
   if (!ok) return c.json({ error: data?.error ?? `Anikoto fetch failed HTTP ${code}` });
 
   const servers = (data?.availableServers ?? []).map((s: string) => ({ name: s, type: audio }));
