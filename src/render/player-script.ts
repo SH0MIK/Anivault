@@ -22,8 +22,6 @@ const panelQualList = document.getElementById('sp-panel-qual-list');
 
 /* ── State ───────────────────────────────────────────────── */
 let hls           = null;
-let preplayReady  = false;
-let _fetchingStream = false;
 let currentM3u8   = null;
 let segsLoaded    = 0;
 
@@ -273,7 +271,7 @@ function loadHLS(m3u8){
   }
 }
 
-/* ── Public API (unchanged) ─────────────────────────────── */
+/* ── Public API ──────────────────────────────────────────── */
 window.SenshiPlayer={
   load(m3u8){
     Array.from(vid.querySelectorAll('track[data-external]')).forEach(t=>t.remove());
@@ -281,35 +279,17 @@ window.SenshiPlayer={
   },
   loadWithSubs(m3u8,subs){if(!m3u8){showError('No stream URL provided.');return}injectSubtitleTracks(subs||[]);loadHLS(m3u8)},
   destroy(){if(hls){hls.destroy();hls=null}vid.src='';Array.from(vid.querySelectorAll('track[data-external]')).forEach(t=>t.remove())},
-  retry(){preplayReady=false;_fetchingStream=false;startPlayback()},
-};
-
-/* ── Senshi self-fetch (used when this player becomes the active server) ── */
-const _malId         = ${JSON.stringify(malId)};
-const _epNum         = ${JSON.stringify(epNum)};
-const _siteUrl       = ${JSON.stringify(siteUrl)};
-
-function startPlayback(audio){
-  if(preplayReady||_fetchingStream)return;
-  _fetchingStream=true;spin(true);
-  const _audio=audio||(typeof currentAudio!=='undefined'?currentAudio:'sub');
-  fetch(\`\${_siteUrl}/api/senshi_stream.php?anime=\${_malId}&ep=\${_epNum}&audio=\${_audio}\`)
-    .then(r=>r.json())
-    .then(d=>{
-      _fetchingStream=false;
-      if(typeof currentServer!=='undefined'&&currentServer!=='volt')return;
-      if(d.error||!d.m3u8){
-        spin(false);
-        showError(d.error?\`Senshi: \${d.error}\`:'No stream URL returned.');return;
-      }
-      preplayReady=true;loadHLS(d.m3u8);
-    })
-    .catch(()=>{
-      _fetchingStream=false;
-      if(typeof currentServer!=='undefined'&&currentServer!=='volt')return;
+  // "Try Again" re-runs whichever server (AnimeHeaven / Anikoto-*) is
+  // currently active, via the global switchToServer() from watch-script1.ts,
+  // instead of the old Senshi-specific self-fetch this used to do.
+  retry(){
+    if(typeof switchToServer==='function'&&typeof currentServer!=='undefined'){
+      switchToServer(currentServer,currentAudio);
+    }else{
       spin(false);showError('Could not reach stream server.');
-    });
-}
+    }
+  },
+};
 
 /* ── Init ────────────────────────────────────────────────── */
 const _curEpChip = document.querySelector('.sp-ep-chip.current');

@@ -329,21 +329,7 @@ export const WATCH_CSS = `/* ═════════════════
   flex-shrink: 0;
   transition: all .22s;
 }
-.server-btn[data-server="volt"]::before       { background:#4a9eff; box-shadow:0 0 5px rgba(74,158,255,.6); }
 .server-btn[data-server="animeheaven"]::before{ background:#22c55e; box-shadow:0 0 5px rgba(34,197,94,.6); }
-.server-btn[data-server="miruro-kiwi"]::before  { background:#84cc16; box-shadow:0 0 5px rgba(132,204,22,.6); }
-.server-btn[data-server="miruro-bonk"]::before  { background:#f97316; box-shadow:0 0 5px rgba(249,115,22,.6); }
-.server-btn[data-server="miruro-bee"]::before   { background:#eab308; box-shadow:0 0 5px rgba(234,179,8,.6); }
-.server-btn[data-server="miruro-bun"]::before   { background:#a855f7; box-shadow:0 0 5px rgba(168,85,247,.6); }
-.server-btn[data-server="miruro-twin"]::before  { background:#06b6d4; box-shadow:0 0 5px rgba(6,182,212,.6); }
-.server-btn[data-server="miruro-ally"]::before  { background:#3b82f6; box-shadow:0 0 5px rgba(59,130,246,.6); }
-.server-btn[data-server="miruro-moo"]::before   { background:#d97706; box-shadow:0 0 5px rgba(217,119,6,.6); }
-.server-btn[data-server="miruro-cog"]::before   { background:#94a3b8; box-shadow:0 0 5px rgba(148,163,184,.6); }
-.server-btn[data-server="miruro-pewe"]::before  { background:#14b8a6; box-shadow:0 0 5px rgba(20,184,166,.6); }
-.server-btn[data-server="miruro-nun"]::before   { background:#f43f5e; box-shadow:0 0 5px rgba(244,63,94,.6); }
-.server-btn[data-server="miruro-telli"]::before { background:#6366f1; box-shadow:0 0 5px rgba(99,102,241,.6); }
-.server-btn[data-server="miruro-hop"]::before   { background:#d946ef; box-shadow:0 0 5px rgba(217,70,239,.6); }
-.server-btn[data-server="miruro-animedunya"]::before { background:#fb7185; box-shadow:0 0 5px rgba(251,113,133,.6); }
 .server-btn[data-server^="anikoto-"]::before { background:#c084fc; box-shadow:0 0 5px rgba(192,132,252,.6); }
 .server-btn:hover {
   background: rgba(255,255,255,.09);
@@ -352,32 +338,16 @@ export const WATCH_CSS = `/* ═════════════════
   transform: translateY(-1px);
   box-shadow: 0 2px 10px rgba(0,0,0,.3);
 }
-.server-btn[data-server="volt"].active {
-  background: rgba(74,158,255,.14); border-color: rgba(74,158,255,.55);
-  color: #4a9eff; box-shadow: 0 0 16px rgba(74,158,255,.2), inset 0 1px 0 rgba(74,158,255,.12);
-}
 .server-btn[data-server="animeheaven"].active {
   background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.55);
   color: #22c55e; box-shadow: 0 0 16px rgba(34,197,94,.2), inset 0 1px 0 rgba(34,197,94,.12);
 }
-.server-btn[data-server="miruro-kiwi"].active  { background:rgba(132,204,22,.14); border-color:rgba(132,204,22,.55); color:#84cc16; box-shadow:0 0 16px rgba(132,204,22,.2),inset 0 1px 0 rgba(132,204,22,.12); }
-.server-btn[data-server="miruro-bonk"].active  { background:rgba(249,115,22,.14); border-color:rgba(249,115,22,.55); color:#f97316; box-shadow:0 0 16px rgba(249,115,22,.2),inset 0 1px 0 rgba(249,115,22,.12); }
-.server-btn[data-server="miruro-bee"].active   { background:rgba(234,179,8,.14);  border-color:rgba(234,179,8,.55);  color:#eab308; box-shadow:0 0 16px rgba(234,179,8,.2), inset 0 1px 0 rgba(234,179,8,.12); }
-.server-btn[data-server="miruro-bun"].active   { background:rgba(168,85,247,.14); border-color:rgba(168,85,247,.55); color:#a855f7; box-shadow:0 0 16px rgba(168,85,247,.2),inset 0 1px 0 rgba(168,85,247,.12); }
-.server-btn[data-server="miruro-twin"].active  { background:rgba(6,182,212,.14);  border-color:rgba(6,182,212,.55);  color:#06b6d4; box-shadow:0 0 16px rgba(6,182,212,.2), inset 0 1px 0 rgba(6,182,212,.12); }
-.server-btn[data-server="miruro-ally"].active  { background:rgba(59,130,246,.14); border-color:rgba(59,130,246,.55); color:#3b82f6; box-shadow:0 0 16px rgba(59,130,246,.2),inset 0 1px 0 rgba(59,130,246,.12); }
-.server-btn[data-server="miruro-moo"].active   { background:rgba(217,119,6,.14);  border-color:rgba(217,119,6,.55);  color:#d97706; box-shadow:0 0 16px rgba(217,119,6,.2), inset 0 1px 0 rgba(217,119,6,.12); }
-.server-btn[data-server="miruro-cog"].active   { background:rgba(148,163,184,.14);border-color:rgba(148,163,184,.55);color:#94a3b8; box-shadow:0 0 16px rgba(148,163,184,.2),inset 0 1px 0 rgba(148,163,184,.12); }
-.server-btn[data-server="miruro-pewe"].active  { background:rgba(20,184,166,.14); border-color:rgba(20,184,166,.55); color:#14b8a6; box-shadow:0 0 16px rgba(20,184,166,.2),inset 0 1px 0 rgba(20,184,166,.12); }
-.server-btn[data-server="miruro-nun"].active   { background:rgba(244,63,94,.14);  border-color:rgba(244,63,94,.55);  color:#f43f5e; box-shadow:0 0 16px rgba(244,63,94,.2), inset 0 1px 0 rgba(244,63,94,.12); }
-.server-btn[data-server="miruro-telli"].active { background:rgba(99,102,241,.14); border-color:rgba(99,102,241,.55); color:#6366f1; box-shadow:0 0 16px rgba(99,102,241,.2),inset 0 1px 0 rgba(99,102,241,.12); }
-.server-btn[data-server="miruro-hop"].active   { background:rgba(217,70,239,.14); border-color:rgba(217,70,239,.55); color:#d946ef; box-shadow:0 0 16px rgba(217,70,239,.2),inset 0 1px 0 rgba(217,70,239,.12); }
-.server-btn[data-server="miruro-animedunya"].active { background:rgba(251,113,133,.14); border-color:rgba(251,113,133,.55); color:#fb7185; box-shadow:0 0 16px rgba(251,113,133,.2),inset 0 1px 0 rgba(251,113,133,.12); }
 .server-btn[data-server^="anikoto-"].active { background:rgba(192,132,252,.14); border-color:rgba(192,132,252,.55); color:#c084fc; box-shadow:0 0 16px rgba(192,132,252,.2),inset 0 1px 0 rgba(192,132,252,.12); }
 
 
-/* Miruro loading placeholder */
-.miruro-loading {
+/* "No servers found" placeholder (class name kept as-is; used for both
+   audio tabs regardless of which provider was being probed) */
+.no-servers-msg {
   font-size: .7rem;
   color: var(--text-muted);
   opacity: .4;
