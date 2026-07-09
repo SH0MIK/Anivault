@@ -68,9 +68,14 @@ scraperRoutes.get('/api/anikoto_stream.php', async (c) => {
   let watchUrl = `${SENSHI_BASE}/watch/anikoto/mal-${animeId}/${epNum}/${audio}`;
   if (server !== '') watchUrl += `?server=${encodeURIComponent(server)}`;
 
-  // 180s timeout: this scraper can be slow on a cold start, and unlike PHP's
-  // max_execution_time, Workers doesn't kill the request during fetch I/O wait.
-  const { ok, code, data } = await fetchJson(watchUrl, 180000);
+  // 20s timeout to match AnimeHeaven's. This used to be 180s to tolerate
+  // Railway cold starts, but that meant EVERY probe (the initial list call,
+  // plus a separate call per provider found) could each individually hang
+  // for up to 3 minutes before failing — which is what made the watch page
+  // feel stuck on "Finding the best server...". A genuine cold start will
+  // now surface as a fast failure instead of a multi-minute hang; the page
+  // just falls back to AnimeHeaven (or shows "no servers found") sooner.
+  const { ok, code, data } = await fetchJson(watchUrl, 20000);
   await session.save(c, lifetime);
   if (!ok) return c.json({ error: data?.error ?? `Anikoto fetch failed HTTP ${code}` });
 
