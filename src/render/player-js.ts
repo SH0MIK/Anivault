@@ -110,7 +110,7 @@ function attemptAutoplay(){
 }
 
 /* ── Spinner ─────────────────────────────────────────────── */
-function spin(on){spinner.classList.toggle('show',on)}
+function spin(on){spinner.classList.toggle('hide',!on)}
 
 /* ── Error ───────────────────────────────────────────────── */
 function showError(msg){spin(false);errMsg.textContent=msg||'Stream unavailable.';errBox.classList.add('show')}
