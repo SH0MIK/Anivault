@@ -80,7 +80,7 @@ adminEpThumbnailsRoutes.get('/admin/ep_thumbnails.php', async (c) => {
   </div>
 </div>
 
-<script>${epThumbnailsScript(siteUrl, c.env.TMDB_API_KEY ?? '')}</script>`;
+${epThumbnailsScript(siteUrl, c.env.TMDB_API_KEY ?? '')}`;
 
   html += renderAdminFooter(siteUrl);
   await session.save(c, lifetime);

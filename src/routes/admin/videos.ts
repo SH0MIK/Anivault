@@ -122,7 +122,7 @@ ${pages > 1 ? `<div class="pagination" style="margin-top:1rem;">${Array.from({ l
   </div>
 </div>
 
-<script>${videosScript(siteUrl)}</script>`;
+${videosScript(siteUrl)}`;
 
   html += renderAdminFooter(siteUrl);
   await session.save(c, lifetime);
