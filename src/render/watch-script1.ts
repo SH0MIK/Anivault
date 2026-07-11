@@ -151,8 +151,8 @@ function switchToAnimeHeaven(audio) {
         if (preplay) preplay.classList.add('hide');
     }
 
-    function applyAnimeHeavenResult(d) {
-        console.log('[AniVault player] applying AnimeHeaven result', d);
+    function applyAnimeHeavenResult(d, isRetry) {
+        console.log('[AniVault player] applying AnimeHeaven result', d, isRetry ? '(retry)' : '');
         function fail(msg) {
             const errMsg = document.getElementById('sp-err-msg');
             if (errMsg) errMsg.textContent = msg;
@@ -190,8 +190,33 @@ function switchToAnimeHeaven(audio) {
         }
         vid.addEventListener('playing', onPlaying, { once: true });
         vid.addEventListener('error', onError, { once: true });
+        // A dead/expired token or a 4xx/CORS block fires the 'error' event
+        // above almost immediately, and readyState===0 covered that case.
+        // But a connection that stalls mid-transfer (e.g. the mobile radio
+        // still waking up after being idle) never fires 'error' at all — it
+        // just parks somewhere past readyState 0 with data trickling in too
+        // slowly to ever reach 'playing'. That silent case is exactly what
+        // was leaving the spinner stuck indefinitely after a reload. So
+        // instead of only checking readyState===0, treat "still not
+        // playing after 12s" as stalled outright, and — the first time —
+        // recover from it automatically the same way manually switching
+        // servers and back does: throw away this attempt and fetch one
+        // completely fresh URL. Only show the error UI if that retry also
+        // stalls or fails.
         setTimeout(() => {
-            if (!settled && vid.readyState === 0) onError();
+            if (settled) return;
+            settled = true;
+            vid.removeEventListener('playing', onPlaying);
+            vid.removeEventListener('error', onError);
+            if (!isRetry) {
+                console.log('[AniVault player] animeheaven stalled, retrying with a fresh URL');
+                fetch(\`${siteUrl}/api/animeheaven_stream.php?anime=${animeId}&ep=${epNum}&audio=\${audio}\`, { cache: 'no-store' })
+                    .then(r => r.json())
+                    .then(d2 => applyAnimeHeavenResult(d2, true))
+                    .catch(() => fail('AnimeHeaven: video stalled and the retry failed. Try another server.'));
+            } else {
+                fail('AnimeHeaven: video stalled and did not recover. Try another server.');
+            }
         }, 12000);
 
         vid.src = d.mp4;
