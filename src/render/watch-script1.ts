@@ -13,59 +13,6 @@ const SITE_URL = '${siteUrl}';
 let currentServer = 'animeheaven';
 let currentAudio  = 'sub';
 
-// ── Mobile debug panel ─────────────────────────────────────────────────
-// No desktop DevTools handy on a phone, so mirror console.log/error into a
-// small on-page panel (🐞 button, bottom-right) instead. Tap it to open,
-// tap "Copy" to grab the text and paste it wherever it needs to go.
-(function initDebugPanel(){
-    const buf = [];
-    function fmt(a){ try { return typeof a === 'object' ? JSON.stringify(a) : String(a); } catch(e){ return String(a); } }
-    function push(kind, args){
-        buf.push('[' + kind + '] ' + Array.from(args).map(fmt).join(' '));
-        if (buf.length > 300) buf.shift();
-        const el = document.getElementById('av-debug-log');
-        if (el) { el.textContent = buf.join('\\n'); el.scrollTop = el.scrollHeight; }
-    }
-    const _log = console.log.bind(console), _err = console.error.bind(console);
-    console.log   = function(){ push('log', arguments);   _log.apply(console, arguments); };
-    console.error = function(){ push('error', arguments); _err.apply(console, arguments); };
-    window.addEventListener('error', e => push('error', [ (e && e.message) || 'Unknown error', 'at', e.filename + ':' + e.lineno ]));
-
-    function mount(){
-        const btn = document.createElement('button');
-        btn.textContent = '🐞';
-        btn.style.cssText = 'position:fixed;bottom:14px;right:14px;z-index:2147483647;width:42px;height:42px;border-radius:50%;background:#e8453c;color:#fff;border:none;font-size:18px;box-shadow:0 2px 10px rgba(0,0,0,.5)';
-        const panel = document.createElement('div');
-        panel.style.cssText = 'position:fixed;left:8px;right:8px;bottom:64px;max-height:55vh;background:rgba(5,5,8,.96);border:1px solid #333;border-radius:10px;z-index:2147483646;display:none;flex-direction:column;overflow:hidden;';
-        const log = document.createElement('pre');
-        log.id = 'av-debug-log';
-        log.style.cssText = 'flex:1;overflow:auto;margin:0;padding:10px;color:#7fff8f;font-size:10px;line-height:1.4;white-space:pre-wrap;word-break:break-all;';
-        const bar = document.createElement('div');
-        bar.style.cssText = 'display:flex;gap:8px;padding:8px;border-top:1px solid #333;';
-        const copyBtn = document.createElement('button');
-        copyBtn.textContent = 'Copy log';
-        copyBtn.style.cssText = 'flex:1;padding:8px;border-radius:6px;border:none;background:#e8453c;color:#fff;font-size:12px;';
-        copyBtn.addEventListener('click', () => {
-            const text = log.textContent || '(empty)';
-            (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject())
-                .then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => copyBtn.textContent = 'Copy log', 1200); })
-                .catch(() => { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); copyBtn.textContent = 'Copied!'; setTimeout(() => copyBtn.textContent = 'Copy log', 1200); });
-        });
-        const clearBtn = document.createElement('button');
-        clearBtn.textContent = 'Clear';
-        clearBtn.style.cssText = 'padding:8px 14px;border-radius:6px;border:1px solid #444;background:transparent;color:#ccc;font-size:12px;';
-        clearBtn.addEventListener('click', () => { buf.length = 0; log.textContent = ''; });
-        bar.appendChild(copyBtn); bar.appendChild(clearBtn);
-        panel.appendChild(log); panel.appendChild(bar);
-        btn.addEventListener('click', () => { panel.style.display = panel.style.display === 'none' ? 'flex' : 'none'; });
-        document.body.appendChild(panel);
-        document.body.appendChild(btn);
-        const el = document.getElementById('av-debug-log');
-        if (el) el.textContent = buf.join('\\n');
-    }
-    if (document.body) mount(); else document.addEventListener('DOMContentLoaded', mount);
-})();
-
 // If the browser restores this page from the back/forward cache (bfcache),
 // no script re-runs and the player is left holding whatever half-dead
 // state it was in when the user left — which can look identical to the
