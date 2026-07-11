@@ -100,7 +100,7 @@ export const Notification = {
   getLink(n: NotificationRow, siteUrl: string): string {
     switch (n.type) {
       case 'follow': return `${siteUrl}/u/${encodeURIComponent(n.actor_name ?? '')}`;
-      case 'like_review': return n.entity_id ? `${siteUrl}/pages/anime.php?id=${n.entity_id}` : `${siteUrl}/feed`;
+      case 'like_review': return n.entity_id ? `${siteUrl}/anime?id=${n.entity_id}` : `${siteUrl}/feed`;
       case 'announcement': return `${siteUrl}/announcements`;
       default: return `${siteUrl}/feed`;
     }

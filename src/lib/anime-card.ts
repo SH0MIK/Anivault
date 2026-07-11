@@ -14,7 +14,7 @@ export function renderAnimeCard(a: NormalisedAnime, siteUrl: string, userStatus:
   const ascore = a.score;
   const atype = a.type ?? '';
   const aeps = a.episodes ?? 0;
-  const aurl = `${siteUrl}/pages/anime.php?id=${aid}`;
+  const aurl = `${siteUrl}/anime?id=${aid}`;
 
   const jTitle = JSON.stringify(atitle);
   const jImage = JSON.stringify(aimg);
