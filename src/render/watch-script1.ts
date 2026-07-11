@@ -1,7 +1,7 @@
 export function watchScript1(params: {
   anilistId: number | null; epNum: number; resumeParam: number; animeId: number;
   siteUrl: string; qSub: any[]; qDub: any[]; isLoggedIn: boolean;
-}): string {
+}): string { 
   const { anilistId, epNum, resumeParam, animeId, siteUrl, qSub, qDub, isLoggedIn } = params;
   return `<script>
 const anilistId = ${JSON.stringify(anilistId)};
