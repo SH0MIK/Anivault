@@ -147,7 +147,7 @@ homeRoutes.get('/', async (c) => {
       <div class="cw-show-more-line"></div>
     </div>
   </section>
-  <script>${continueWatchingScript(siteUrl)}</script>`;
+  ${continueWatchingScript(siteUrl)}`;
   }
 
   // ── Watch Now ────────────────────────────────────────────────────────────

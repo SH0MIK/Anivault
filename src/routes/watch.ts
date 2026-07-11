@@ -234,13 +234,20 @@ watchRoutes.get('/pages/watch.php', async (c) => {
   });
 
   // Server-probing/switching script (always present)
-  html += `<script>${watchScript1({
+  // NOTE: watchScript1() already returns its own <script>...</script>-wrapped
+  // string — do NOT wrap it again here. Doing so produces nested <script>
+  // tags, which the browser's HTML parser can't handle (it just scans for
+  // the first literal </script>, closing the tag early and handing the JS
+  // engine a stray leftover "<script>" as its first token — an immediate
+  // syntax error that silently kills this entire block before anything,
+  // including the server probe, ever runs).
+  html += watchScript1({
     anilistId, epNum, resumeParam, animeId, siteUrl, qSub, qDub, isLoggedIn: auth.check(),
-  })}</script>`;
+  });
 
   // Wall-clock progress tracker (logged-in users only, matches the PHP Auth::check() gate)
   if (auth.check()) {
-    html += `<script>${watchScript2(animeId, epNum, siteUrl, epDurationSec)}</script>`;
+    html += watchScript2(animeId, epNum, siteUrl, epDurationSec);
   }
 
   html += renderFooter({ siteUrl, currentUser: layoutUser });
@@ -271,7 +278,9 @@ watchRoutes.get('/pages/watch.php', async (c) => {
     watchBase, epNums, curEp: epNum, totalEpsN: totalEps,
   });
   html += `<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>`;
-  html += `<script>${playerScript(animeId, epNum, siteUrl)}</script>`;
+  // Same double-wrap issue as watchScript1/2 above — playerScript() already
+  // returns its own <script> tags.
+  html += playerScript(animeId, epNum, siteUrl);
   html += `</div>`;
 
   await session.save(c, lifetime);
