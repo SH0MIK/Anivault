@@ -7,44 +7,42 @@ export function watchScript1(params: {
 const anilistId = ${JSON.stringify(anilistId)};
 const epNum = ${epNum};
 const resumeTime = ${resumeParam};
+const ANIME_ID = ${animeId};
+const SITE_URL = '${siteUrl}';
 let currentServer = 'animeheaven';
 let currentAudio  = 'sub';
 
-// ── Network wake-up ping ─────────────────────────────────────────────────
-// On mobile, the cellular radio drops to a low-power idle state after a
-// few seconds without traffic. Reloading a backgrounded tab fires the real
-// stream probes as the very first network activity in the new page, so
-// that first request pays the cost of waking the radio back up on top of
-// whatever the scraper itself takes — which is what made "Finding the best
-// server..." sit there on reload even though every request right after it
-// (switching servers, or switching back) was instant, since the radio was
-// already awake by then. Firing a tiny, cheap same-origin request (a
-// static image served straight off Cloudflare, no Worker/D1/scraper
-// involved) as early as possible, and again whenever the tab regains
-// visibility, gets the radio spinning and the connection warm before the
-// real probes below ever start.
-function _wakeNetwork() {
-    fetch(\`${siteUrl}/assets/img/site-img/icon.png\`, { cache: 'no-store', mode: 'no-cors' }).catch(() => {});
-}
-_wakeNetwork();
-document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') _wakeNetwork();
+// If the browser restores this page from the back/forward cache (bfcache),
+// no script re-runs and the player is left holding whatever half-dead
+// state it was in when the user left — which can look identical to the
+// "reload shows an endless spinner" symptom. Force a real reload so every
+// visit always starts from a clean, freshly-fetched state.
+window.addEventListener('pageshow', function (e) {
+    if (e.persisted) location.reload();
 });
 
-// ── Bounded-timeout fetch ─────────────────────────────────────────────────
-// None of the stream-API calls below had ANY timeout — they relied on the
-// browser's own default (multiple minutes), so a connection that stalls
-// right at the fetch itself (before any stream URL even comes back) just
-// hung there with nothing to catch it. This is what was left after ruling
-// out caching and the video-element stall watchdog: the initial API call
-// could itself hang indefinitely on a flaky mobile connection. This forces
-// every call to give up after 8s and lets the caller retry with a
-// completely fresh request instead of waiting on a dead one.
-function _fetchTimeout(url, ms) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), ms || 8000);
-    return fetch(url, { cache: 'no-store', signal: ctrl.signal })
-        .finally(() => clearTimeout(t));
+// ── AnimeHeaven request de-duplication ────────────────────────────────────
+// AnimeHeaven hands out a single-use session token per request — fetching
+// it twice for the same audio track (once to probe it, once to actually
+// load it) invalidates the first one, which is what caused "plays, then
+// errors/stalls a moment later". This used to be guarded by a fragile
+// 8-second timing window; that guess held up on a cold first load but
+// missed on reload once connections were warm and the two calls raced
+// each other. This guarantees only ONE real network request per audio
+// track is ever in flight or recently completed — anything else (the
+// probe, the activation, a retry) just reuses it.
+window._animeheavenReq = window._animeheavenReq || {};
+function fetchAnimeHeavenOnce(audio) {
+    const store = window._animeheavenReq;
+    const rec = store[audio];
+    if (rec && (rec.pending || (Date.now() - rec.ts) < 8000)) return rec.promise;
+    const newRec = { pending: true, ts: Date.now(), promise: null };
+    newRec.promise = fetch(\`\${SITE_URL}/api/animeheaven_stream.php?anime=\${ANIME_ID}&ep=\${epNum}&audio=\${audio}\`)
+        .then(r => r.json())
+        .then(d => { newRec.pending = false; newRec.ts = Date.now(); return d; })
+        .catch(e => { newRec.pending = false; newRec.ts = Date.now(); throw e; });
+    store[audio] = newRec;
+    return newRec.promise;
 }
 
 // ── Visible error surfacing ──────────────────────────────────────────────
@@ -167,8 +165,8 @@ function switchToAnimeHeaven(audio) {
         if (preplay) preplay.classList.add('hide');
     }
 
-    function applyAnimeHeavenResult(d, isRetry) {
-        console.log('[AniVault player] applying AnimeHeaven result', d, isRetry ? '(retry)' : '');
+    function applyAnimeHeavenResult(d) {
+        console.log('[AniVault player] applying AnimeHeaven result', d);
         function fail(msg) {
             const errMsg = document.getElementById('sp-err-msg');
             if (errMsg) errMsg.textContent = msg;
@@ -192,47 +190,52 @@ function switchToAnimeHeaven(audio) {
         // spinner). These listeners tie the spinner/error UI to what the
         // <video> element itself reports instead of firing blind.
         let settled = false;
-        const onPlaying = () => { settled = true; spinEl_hide(); vid.removeEventListener('error', onError); };
-        const onError = () => {
-            if (settled) return;
-            settled = true;
-            const code = vid.error ? vid.error.code : 0;
-            fail('AnimeHeaven: video failed to load (code ' + code + '). The proxy link may be dead/expired or blocked by CORS — try another server.');
+        let stallTimer = null;
+        function clearStallTimer() { if (stallTimer) { clearTimeout(stallTimer); stallTimer = null; } }
+        function cleanup() {
+            clearStallTimer();
             vid.removeEventListener('playing', onPlaying);
+            vid.removeEventListener('error', onError);
+            vid.removeEventListener('waiting', onWaiting);
+            vid.removeEventListener('stalled', onWaiting);
+            vid.removeEventListener('timeupdate', clearStallTimer);
+            vid.removeEventListener('playing', clearStallTimer);
+        }
+        const onPlaying = () => { settled = true; spinEl_hide(); cleanupErrorOnly(); };
+        function cleanupErrorOnly() { vid.removeEventListener('error', onError); }
+        const onError = () => {
+            if (!settled) {
+                const code = vid.error ? vid.error.code : 0;
+                fail('AnimeHeaven: video failed to load (code ' + code + '). The proxy link may be dead/expired or blocked by CORS — try another server.');
+            } else {
+                fail('AnimeHeaven: video stalled and did not recover. Try another server.');
+            }
+            cleanup();
+        };
+        // Once playback genuinely starts, a 'waiting'/'stalled' event that
+        // never resolves (no 'playing' or 'timeupdate' within 10s) means
+        // the underlying MP4 link died mid-stream — surface that instead
+        // of leaving the spinner running forever.
+        const onWaiting = () => {
+            if (!settled) return; // still in the initial start-up phase, handled by onError's 12s check below
+            clearStallTimer();
+            stallTimer = setTimeout(() => {
+                fail('AnimeHeaven: video stalled and did not recover. Try another server.');
+                cleanup();
+            }, 10000);
         };
         function spinEl_hide() {
             const spinEl = document.getElementById('sp-spinner');
             if (spinEl) spinEl.classList.add('hide');
         }
-        vid.addEventListener('playing', onPlaying, { once: true });
-        vid.addEventListener('error', onError, { once: true });
-        // A dead/expired token or a 4xx/CORS block fires the 'error' event
-        // above almost immediately, and readyState===0 covered that case.
-        // But a connection that stalls mid-transfer (e.g. the mobile radio
-        // still waking up after being idle) never fires 'error' at all — it
-        // just parks somewhere past readyState 0 with data trickling in too
-        // slowly to ever reach 'playing'. That silent case is exactly what
-        // was leaving the spinner stuck indefinitely after a reload. So
-        // instead of only checking readyState===0, treat "still not
-        // playing after 12s" as stalled outright, and — the first time —
-        // recover from it automatically the same way manually switching
-        // servers and back does: throw away this attempt and fetch one
-        // completely fresh URL. Only show the error UI if that retry also
-        // stalls or fails.
+        vid.addEventListener('playing', onPlaying);
+        vid.addEventListener('error', onError);
+        vid.addEventListener('waiting', onWaiting);
+        vid.addEventListener('stalled', onWaiting);
+        vid.addEventListener('timeupdate', clearStallTimer);
+        vid.addEventListener('playing', clearStallTimer);
         setTimeout(() => {
-            if (settled) return;
-            settled = true;
-            vid.removeEventListener('playing', onPlaying);
-            vid.removeEventListener('error', onError);
-            if (!isRetry) {
-                console.log('[AniVault player] animeheaven stalled, retrying with a fresh URL');
-                fetch(\`${siteUrl}/api/animeheaven_stream.php?anime=${animeId}&ep=${epNum}&audio=\${audio}\`, { cache: 'no-store' })
-                    .then(r => r.json())
-                    .then(d2 => applyAnimeHeavenResult(d2, true))
-                    .catch(() => fail('AnimeHeaven: video stalled and the retry failed. Try another server.'));
-            } else {
-                fail('AnimeHeaven: video stalled and did not recover. Try another server.');
-            }
+            if (!settled && vid.readyState === 0) onError();
         }, 12000);
 
         vid.src = d.mp4;
@@ -243,38 +246,18 @@ function switchToAnimeHeaven(audio) {
         if (badge) badge.textContent = 'MP4';
     }
 
-    // Reuse the probe's response (from checkAnimeHeaven) if it's fresh,
-    // instead of hitting the scraper again for the same anime/ep/audio —
-    // requesting AnimeHeaven twice back-to-back invalidates the session
-    // token it just handed out, which is what was causing "plays, then
-    // errors a moment later" right after the auto-activated first load.
-    window._animeheavenCache = window._animeheavenCache || {};
-    const cached = window._animeheavenCache[audio];
-    if (cached && (Date.now() - cached.ts) < 8000) {
-        delete window._animeheavenCache[audio];
-        applyAnimeHeavenResult(cached.data);
-        return;
-    }
-
-    // Fetch MP4 URL — bounded to 8s, with one automatic fresh retry if it
-    // times out (same fresh-attempt recovery as the video-stall watchdog
-    // above, just for a hang that happens before any URL even comes back).
-    _fetchTimeout(\`${siteUrl}/api/animeheaven_stream.php?anime=${animeId}&ep=${epNum}&audio=\${audio}\`, 8000)
-        .then(r => r.json())
+    // Fetch MP4 URL — goes through fetchAnimeHeavenOnce so this always
+    // reuses the probe's in-flight/recent request instead of firing a
+    // second one, no matter how the timing lines up on this particular load.
+    fetchAnimeHeavenOnce(audio)
         .then(applyAnimeHeavenResult)
         .catch(() => {
-            console.log('[AniVault player] animeheaven switch fetch stalled/failed, retrying fresh');
-            _fetchTimeout(\`${siteUrl}/api/animeheaven_stream.php?anime=${animeId}&ep=${epNum}&audio=\${audio}\`, 8000)
-                .then(r => r.json())
-                .then(applyAnimeHeavenResult)
-                .catch(() => {
-                    const errMsg = document.getElementById('sp-err-msg');
-                    if (errMsg) errMsg.textContent = 'Could not reach stream server.';
-                    const errEl = document.getElementById('sp-error');
-                    if (errEl) errEl.classList.add('show');
-                    const spinEl = document.getElementById('sp-spinner');
-                    if (spinEl) spinEl.classList.add('hide');
-                });
+            const errMsg = document.getElementById('sp-err-msg');
+            if (errMsg) errMsg.textContent = 'Could not reach stream server.';
+            const errEl = document.getElementById('sp-error');
+            if (errEl) errEl.classList.add('show');
+            const spinEl = document.getElementById('sp-spinner');
+            if (spinEl) spinEl.classList.add('hide');
         });
 }
 
@@ -352,20 +335,14 @@ function switchToAnikoto(providerName, audio) {
         return;
     }
 
-    _fetchTimeout(\`${siteUrl}/api/anikoto_stream.php?anime=${animeId}&ep=${epNum}&audio=\${audio}&server=\${encodeURIComponent(providerName)}\`, 8000)
+    fetch(\`${siteUrl}/api/anikoto_stream.php?anime=${animeId}&ep=${epNum}&audio=\${audio}&server=\${encodeURIComponent(providerName)}\`)
         .then(r => r.json())
         .then(applyAnikotoResult)
         .catch(() => {
-            console.log('[AniVault player] anikoto switch fetch stalled/failed, retrying fresh');
-            _fetchTimeout(\`${siteUrl}/api/anikoto_stream.php?anime=${animeId}&ep=${epNum}&audio=\${audio}&server=\${encodeURIComponent(providerName)}\`, 8000)
-                .then(r => r.json())
-                .then(applyAnikotoResult)
-                .catch(() => {
-                    const errMsg = document.getElementById('sp-err-msg');
-                    if (errMsg) errMsg.textContent = 'Could not reach stream server.';
-                    if (errEl) errEl.classList.add('show');
-                    if (spinEl) spinEl.classList.add('hide');
-                });
+            const errMsg = document.getElementById('sp-err-msg');
+            if (errMsg) errMsg.textContent = 'Could not reach stream server.';
+            if (errEl) errEl.classList.add('show');
+            if (spinEl) spinEl.classList.add('hide');
         });
 }
 
@@ -459,30 +436,19 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
     // would show up, auto-activate, then immediately error out with
     // "Could not reach stream server." Switching servers and back masked
     // it because that's just a single fresh request outside the race.
-    function checkAnimeHeaven(audio, isRetry) {
-        return _fetchTimeout(\`\${SITE}/api/animeheaven_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}\`, 8000)
-            .then(r => r.json()).then(d => {
+    function checkAnimeHeaven(audio) {
+        return fetchAnimeHeavenOnce(audio)
+            .then(d => {
                 const ok = !d.error && !!d.mp4;
                 console.log('[AniVault player] animeheaven', audio, ok ? 'OK' : 'FAILED', d);
-                if (ok) {
-                    window._animeheavenCache = window._animeheavenCache || {};
-                    window._animeheavenCache[audio] = { data: d, ts: Date.now() };
-                }
                 return ok;
-            }).catch(e => {
-                console.error('[AniVault player] animeheaven fetch threw', e);
-                // Most likely cause is the connection stalling right at the
-                // fetch (e.g. mobile radio still waking up after reload) —
-                // one fresh retry recovers from that almost every time.
-                if (!isRetry) return checkAnimeHeaven(audio, true);
-                return false;
-            });
+            }).catch(e => { console.error('[AniVault player] animeheaven fetch threw', e); return false; });
     }
     // Same pattern as AnimeHeaven's probe above, but for Anikoto (which also returns subtitles,
     // handled separately in switchToAnikoto/loadWithSubs — no change needed
     // to the discovery/probing logic here).
     function fetchAnikotoList(audio, attempt = 1) {
-        return _fetchTimeout(\`\${SITE}/api/anikoto_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}\`, 8000)
+        return fetch(\`\${SITE}/api/anikoto_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}\`)
             .then(r => r.json())
             .then(d => { console.log('[AniVault player] anikoto list', audio, 'attempt', attempt, d); return (d.servers || []).filter(s => s.type === audio); })
             .catch(e => { console.error('[AniVault player] anikoto list fetch threw', audio, e); return []; })
@@ -492,8 +458,8 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
                     .then(() => fetchAnikotoList(audio, attempt + 1));
             });
     }
-    function checkAnikotoProvider(provider, audio, isRetry) {
-        return _fetchTimeout(\`\${SITE}/api/anikoto_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}&server=\${encodeURIComponent(provider)}\`, 8000)
+    function checkAnikotoProvider(provider, audio) {
+        return fetch(\`\${SITE}/api/anikoto_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}&server=\${encodeURIComponent(provider)}\`)
             .then(r => r.json()).then(d => {
                 const ok = !d.error && !!d.m3u8;
                 console.log('[AniVault player] anikoto', provider, audio, ok ? 'OK' : 'FAILED', d);
@@ -508,10 +474,7 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
                     window._anikotoCache[audio + '::' + provider.toLowerCase().trim()] = { data: d, ts: Date.now() };
                 }
                 return ok;
-            }).catch(() => {
-                if (!isRetry) return checkAnikotoProvider(provider, audio, true);
-                return false;
-            });
+            }).catch(() => false);
     }
 
     // ── Incremental probing ───────────────────────────────────────────────
