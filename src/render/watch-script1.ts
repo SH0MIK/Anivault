@@ -10,6 +10,27 @@ const resumeTime = ${resumeParam};
 let currentServer = 'animeheaven';
 let currentAudio  = 'sub';
 
+// ── Network wake-up ping ─────────────────────────────────────────────────
+// On mobile, the cellular radio drops to a low-power idle state after a
+// few seconds without traffic. Reloading a backgrounded tab fires the real
+// stream probes as the very first network activity in the new page, so
+// that first request pays the cost of waking the radio back up on top of
+// whatever the scraper itself takes — which is what made "Finding the best
+// server..." sit there on reload even though every request right after it
+// (switching servers, or switching back) was instant, since the radio was
+// already awake by then. Firing a tiny, cheap same-origin request (a
+// static image served straight off Cloudflare, no Worker/D1/scraper
+// involved) as early as possible, and again whenever the tab regains
+// visibility, gets the radio spinning and the connection warm before the
+// real probes below ever start.
+function _wakeNetwork() {
+    fetch(\`${siteUrl}/assets/img/site-img/icon.png\`, { cache: 'no-store', mode: 'no-cors' }).catch(() => {});
+}
+_wakeNetwork();
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') _wakeNetwork();
+});
+
 // ── Visible error surfacing ──────────────────────────────────────────────
 // Any uncaught JS error used to just leave the "Finding the best server..."
 // skeleton spinning forever with zero feedback. This writes the real error
