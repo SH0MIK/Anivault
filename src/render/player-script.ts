@@ -232,10 +232,27 @@ document.querySelectorAll('.sp-sopt').forEach(btn=>{
 })();
 
 /* ── HLS loader ──────────────────────────────────────────── */
+let _watchdogTimer=null;
+function _clearWatchdog(){ if(_watchdogTimer){ clearTimeout(_watchdogTimer); _watchdogTimer=null; } }
+function _armWatchdog(){
+  _clearWatchdog();
+  // Safety net: if playback hasn't actually started ~18s after we asked
+  // for it, stop spinning forever and surface an error instead. Covers
+  // cases hls.js doesn't cleanly report as fatal (stalled segment
+  // fetches, a manifest that parses but never yields playable data,
+  // non-fatal errors it keeps silently retrying, etc.) — previously
+  // these left the spinner running indefinitely with no way out.
+  _watchdogTimer=setTimeout(()=>{
+    if(vid.readyState===0||vid.currentTime===0){
+      showError('Stream timed out — try another server.');
+    }
+  },18000);
+}
+
 function loadHLS(m3u8){
   if(hls){hls.destroy();hls=null}
   currentM3u8=m3u8;segsLoaded=0;
-  spin(true);hideError();
+  spin(true);hideError();_armWatchdog();
   if(window.Hls&&Hls.isSupported()){
     hls=new Hls({
       enableWorker:true,lowLatencyMode:false,
@@ -258,15 +275,19 @@ function loadHLS(m3u8){
       updateInfoPanel();
     });
     hls.on(Hls.Events.ERROR,(_,data)=>{
-      if(!data.fatal)return;
-      if(vid.readyState===0&&vid.currentTime===0)showError('Stream error — try another server.');
+      // Any fatal error means playback has actually stopped, regardless
+      // of how much (if anything) had already buffered — the previous
+      // readyState===0/currentTime===0 check missed fatal errors that
+      // happen mid-stream and just left the spinner stuck.
+      if(data.fatal){ _clearWatchdog(); showError('Stream error — try another server.'); }
     });
-    vid.addEventListener('playing',()=>spin(false));
+    vid.addEventListener('playing',()=>{_clearWatchdog();spin(false)});
   }else if(vid.canPlayType('application/vnd.apple.mpegurl')){
     vid.src=m3u8;
     vid.addEventListener('loadedmetadata',()=>{enableDefaultSubtitles();attemptAutoplay()},{once:true});
-    vid.addEventListener('playing',()=>spin(false));
+    vid.addEventListener('playing',()=>{_clearWatchdog();spin(false)});
   }else{
+    _clearWatchdog();
     showError('HLS playback is not supported in this browser.');
   }
 }
