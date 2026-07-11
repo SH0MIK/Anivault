@@ -221,6 +221,7 @@ function switchToAnimeHeaven(audio) {
     function applyAnimeHeavenResult(d) {
         console.log('[AniVault player] applying AnimeHeaven result', d);
         function fail(msg) {
+            console.error('[AniVault player] AnimeHeaven FAIL:', msg, '| readyState=' + vid.readyState, 'networkState=' + vid.networkState, 'currentTime=' + vid.currentTime, 'error=' + JSON.stringify(vid.error && { code: vid.error.code, message: vid.error.message }));
             const errMsg = document.getElementById('sp-err-msg');
             if (errMsg) errMsg.textContent = msg;
             const errEl = document.getElementById('sp-error');
@@ -254,9 +255,10 @@ function switchToAnimeHeaven(audio) {
             vid.removeEventListener('timeupdate', clearStallTimer);
             vid.removeEventListener('playing', clearStallTimer);
         }
-        const onPlaying = () => { settled = true; spinEl_hide(); cleanupErrorOnly(); };
+        const onPlaying = () => { console.log('[AniVault player] AnimeHeaven <video> "playing" fired — playback started OK'); settled = true; spinEl_hide(); cleanupErrorOnly(); };
         function cleanupErrorOnly() { vid.removeEventListener('error', onError); }
         const onError = () => {
+            console.error('[AniVault player] AnimeHeaven <video> "error" event fired, settled=' + settled);
             if (!settled) {
                 const code = vid.error ? vid.error.code : 0;
                 fail('AnimeHeaven: video failed to load (code ' + code + '). The proxy link may be dead/expired or blocked by CORS — try another server.');
@@ -270,9 +272,11 @@ function switchToAnimeHeaven(audio) {
         // the underlying MP4 link died mid-stream — surface that instead
         // of leaving the spinner running forever.
         const onWaiting = () => {
+            console.log('[AniVault player] AnimeHeaven <video> "waiting/stalled" fired, settled=' + settled + ', readyState=' + vid.readyState);
             if (!settled) return; // still in the initial start-up phase, handled by onError's 12s check below
             clearStallTimer();
             stallTimer = setTimeout(() => {
+                console.error('[AniVault player] AnimeHeaven stall watchdog fired — no recovery within 10s');
                 fail('AnimeHeaven: video stalled and did not recover. Try another server.');
                 cleanup();
             }, 10000);
@@ -287,13 +291,23 @@ function switchToAnimeHeaven(audio) {
         vid.addEventListener('stalled', onWaiting);
         vid.addEventListener('timeupdate', clearStallTimer);
         vid.addEventListener('playing', clearStallTimer);
+        vid.addEventListener('loadstart', () => console.log('[AniVault player] <video> loadstart'));
+        vid.addEventListener('loadedmetadata', () => console.log('[AniVault player] <video> loadedmetadata, duration=' + vid.duration));
+        vid.addEventListener('canplay', () => console.log('[AniVault player] <video> canplay, readyState=' + vid.readyState));
         setTimeout(() => {
+            console.log('[AniVault player] 12s start-up check: settled=' + settled + ', readyState=' + vid.readyState + ', networkState=' + vid.networkState + ', currentTime=' + vid.currentTime);
             if (!settled && vid.readyState === 0) onError();
         }, 12000);
 
+        console.log('[AniVault player] setting <video> src to AnimeHeaven proxy URL and calling play()');
         vid.src = d.mp4;
         vid.load();
-        vid.play().catch(() => { /* actual failure is reported via the 'error' listener above, not here */ });
+        vid.play().then(() => {
+            console.log('[AniVault player] <video>.play() promise resolved');
+        }).catch(err => {
+            console.error('[AniVault player] <video>.play() promise rejected:', err && err.name, err && err.message);
+            /* actual failure is reported via the 'error' listener above, not here */
+        });
         // Hide HLS badge since this is MP4
         const badge = document.getElementById('sp-hls-badge');
         if (badge) badge.textContent = 'MP4';
