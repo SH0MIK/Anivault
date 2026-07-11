@@ -163,4 +163,55 @@ export const ICON_SPRITE = `<svg xmlns="http://www.w3.org/2000/svg" style="displ
   <path d="M3 11l18-5v12L3 13v-2z"/>
   <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
 </symbol>
+<symbol id="icon-chart-bar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <line x1="18" y1="20" x2="18" y2="10"/>
+  <line x1="12" y1="20" x2="12" y2="4"/>
+  <line x1="6" y1="20" x2="6" y2="14"/>
+</symbol>
+<symbol id="icon-tv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="2" y="7" width="20" height="15" rx="2" ry="2"/>
+  <polyline points="17 2 12 7 7 2"/>
+</symbol>
+<symbol id="icon-wrench" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M14.7 6.3a4 4 0 1 1-5.4 5.4l-7.6 7.6a1.5 1.5 0 0 0 2.1 2.1l7.6-7.6a4 4 0 0 1 5.4-5.4l-2.2 2.2a1 1 0 0 1-1.4 0l-1.4-1.4a1 1 0 0 1 0-1.4z"/>
+</symbol>
+<symbol id="icon-merge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="18" cy="18" r="3"/>
+  <circle cx="6" cy="6" r="3"/>
+  <path d="M6 21V9a9 9 0 0 0 9 9"/>
+</symbol>
+<symbol id="icon-layout" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+  <line x1="3" y1="9" x2="21" y2="9"/>
+  <line x1="9" y1="21" x2="9" y2="9"/>
+</symbol>
+<symbol id="icon-heal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M19 14c1.5-1.5 3-3.5 3-5.5A4.5 4.5 0 0 0 17.5 4c-1.7 0-3 .8-3.5 2-0.5-1.2-1.8-2-3.5-2A4.5 4.5 0 0 0 6 8.5C6 12 9 15 12 18"/>
+  <line x1="12" y1="9" x2="12" y2="13"/>
+  <line x1="10" y1="11" x2="14" y2="11"/>
+</symbol>
+<symbol id="icon-terms" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+  <polyline points="14 2 14 8 20 8"/>
+  <line x1="8" y1="13" x2="16" y2="13"/>
+  <line x1="8" y1="17" x2="16" y2="17"/>
+</symbol>
+<symbol id="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+  <circle cx="12" cy="12" r="3"/>
+</symbol>
+<symbol id="icon-discord" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8 12a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4z"/>
+  <path d="M16 12a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4z"/>
+  <path d="M7 5.5C9 4.8 10.5 4.5 12 4.5s3 .3 5 1c1.5 2 2.3 4.6 2.3 9.5-1.5 1.2-3 1.8-4.3 2l-.8-1.4c.7-.2 1.4-.5 2-1-1.5.7-3 1-4.2 1s-2.7-.3-4.2-1c.6.5 1.3.8 2 1L9 17c-1.3-.2-2.8-.8-4.3-2C4.7 10.1 5.5 7.5 7 5.5z"/>
+</symbol>
+<symbol id="icon-github" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 1.7 5.4 2 5.4 2a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 8.4c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V20"/>
+</symbol>
+<symbol id="icon-facebook" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+</symbol>
+<symbol id="icon-twitter" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M23 3a10.9 10.9 0 0 1-3.1.9 4.5 4.5 0 0 0 2-2.5 9 9 0 0 1-2.9 1.1 4.5 4.5 0 0 0-7.6 4.1A12.7 12.7 0 0 1 2 2.9a4.5 4.5 0 0 0 1.4 6 4.4 4.4 0 0 1-2-.6v.1a4.5 4.5 0 0 0 3.6 4.4 4.5 4.5 0 0 1-2 .1 4.5 4.5 0 0 0 4.2 3.1A9.1 9.1 0 0 1 1 19.5a12.8 12.8 0 0 0 6.9 2c8.3 0 12.8-6.9 12.8-12.8v-.6A9.2 9.2 0 0 0 23 3z"/>
+</symbol>
 </svg>`;
