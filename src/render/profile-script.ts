@@ -423,5 +423,4 @@ function updateAvatarImages(avatarUrl) {
     img.src = newSrc; img.style.display='block';
   });
 }
-</script>
 `;

@@ -10,6 +10,26 @@ const resumeTime = ${resumeParam};
 let currentServer = 'animeheaven';
 let currentAudio  = 'sub';
 
+// ── Visible error surfacing ──────────────────────────────────────────────
+// Any uncaught JS error used to just leave the "Finding the best server..."
+// skeleton spinning forever with zero feedback. This writes the real error
+// straight into that box (and the console) so a broken deploy is obvious
+// instead of looking identical to a slow/dead backend.
+function _showFatalClientError(msg) {
+    console.error('[AniVault player]', msg);
+    var fs = document.getElementById('wp-finding-server');
+    if (fs) {
+        fs.innerHTML = '<div class="wpfs-text" style="color:#e8453c;max-width:320px;text-align:center;">Player script error:<br><span style="font-size:0.8em;opacity:.85;">' + String(msg).replace(/</g,'&lt;') + '</span></div>';
+    }
+    var pw = document.getElementById('watch-player-wrap');
+    if (pw && !fs) {
+        pw.innerHTML = '<div style="padding:1rem;color:#e8453c;text-align:center;">Player script error: ' + String(msg).replace(/</g,'&lt;') + '</div>';
+    }
+}
+window.addEventListener('error', function(e) {
+    _showFatalClientError((e && e.message) || 'Unknown script error');
+});
+
 function buildMegaplayUrl(audio) {
     let url = \`https://megaplay.buzz/stream/mal/${animeId}/${epNum}/\${audio}\`;
     if (resumeTime) url += \`?t=\${resumeTime}\`;
@@ -111,26 +131,51 @@ function switchToAnimeHeaven(audio) {
     }
 
     function applyAnimeHeavenResult(d) {
+        console.log('[AniVault player] applying AnimeHeaven result', d);
+        function fail(msg) {
+            const errMsg = document.getElementById('sp-err-msg');
+            if (errMsg) errMsg.textContent = msg;
+            const errEl = document.getElementById('sp-error');
+            if (errEl) errEl.classList.add('show');
+            const spinEl = document.getElementById('sp-spinner');
+            if (spinEl) spinEl.classList.add('hide');
+        }
         if (d.error || !d.mp4) {
-            if (window.SenshiPlayer) {
-                const errMsg = document.getElementById('sp-err-msg');
-                if (errMsg) errMsg.textContent = d.error ? \`AnimeHeaven: \${d.error}\` : 'No stream URL returned.';
-                const errEl = document.getElementById('sp-error');
-                if (errEl) errEl.classList.add('show');
-                const spinEl = document.getElementById('sp-spinner');
-                if (spinEl) spinEl.classList.add('hide');
-            }
+            fail(d.error ? \`AnimeHeaven: \${d.error}\` : 'No stream URL returned.');
             return;
         }
         // Load MP4 directly into the custom player's video element
         const vid = document.getElementById('sp-video');
-        if (vid) {
-            vid.src = d.mp4;
-            vid.load();
-            vid.play().catch(() => {});
+        if (!vid) { fail('Player element missing (sp-video not found).'); return; }
+
+        // The spinner used to get hidden immediately after vid.src was set,
+        // regardless of whether the media actually loaded — so a CORS
+        // block, a 403 from the proxy, or a decode error looked identical
+        // to "it's playing" (paused-looking black frame, no error, no
+        // spinner). These listeners tie the spinner/error UI to what the
+        // <video> element itself reports instead of firing blind.
+        let settled = false;
+        const onPlaying = () => { settled = true; spinEl_hide(); vid.removeEventListener('error', onError); };
+        const onError = () => {
+            if (settled) return;
+            settled = true;
+            const code = vid.error ? vid.error.code : 0;
+            fail('AnimeHeaven: video failed to load (code ' + code + '). The proxy link may be dead/expired or blocked by CORS — try another server.');
+            vid.removeEventListener('playing', onPlaying);
+        };
+        function spinEl_hide() {
+            const spinEl = document.getElementById('sp-spinner');
+            if (spinEl) spinEl.classList.add('hide');
         }
-        const spinEl = document.getElementById('sp-spinner');
-        if (spinEl) spinEl.classList.add('hide');
+        vid.addEventListener('playing', onPlaying, { once: true });
+        vid.addEventListener('error', onError, { once: true });
+        setTimeout(() => {
+            if (!settled && vid.readyState === 0) onError();
+        }, 12000);
+
+        vid.src = d.mp4;
+        vid.load();
+        vid.play().catch(() => { /* actual failure is reported via the 'error' listener above, not here */ });
         // Hide HLS badge since this is MP4
         const badge = document.getElementById('sp-hls-badge');
         if (badge) badge.textContent = 'MP4';
@@ -317,9 +362,11 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
     // touch it, and don't bother hitting the (auth-gated) stream endpoints.
     if (!document.getElementById('tab-panel-sub') && !document.getElementById('tab-panel-dub')) return;
 
+  try {
     const SITE  = '${siteUrl}';
     const ANIME = ${animeId};
     const EP    = ${epNum};
+    console.log('[AniVault player] probing servers on', SITE, 'anime', ANIME, 'ep', EP);
 
     function makeBtn(serverKey, label, badge) {
         const btn = document.createElement('button');
@@ -340,12 +387,13 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         return fetch(\`\${SITE}/api/animeheaven_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}\`)
             .then(r => r.json()).then(d => {
                 const ok = !d.error && !!d.mp4;
+                console.log('[AniVault player] animeheaven', audio, ok ? 'OK' : 'FAILED', d);
                 if (ok) {
                     window._animeheavenCache = window._animeheavenCache || {};
                     window._animeheavenCache[audio] = { data: d, ts: Date.now() };
                 }
                 return ok;
-            }).catch(() => false);
+            }).catch(e => { console.error('[AniVault player] animeheaven fetch threw', e); return false; });
     }
     // Same pattern as AnimeHeaven's probe above, but for Anikoto (which also returns subtitles,
     // handled separately in switchToAnikoto/loadWithSubs — no change needed
@@ -353,8 +401,8 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
     function fetchAnikotoList(audio, attempt = 1) {
         return fetch(\`\${SITE}/api/anikoto_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}\`)
             .then(r => r.json())
-            .then(d => (d.servers || []).filter(s => s.type === audio))
-            .catch(() => [])
+            .then(d => { console.log('[AniVault player] anikoto list', audio, 'attempt', attempt, d); return (d.servers || []).filter(s => s.type === audio); })
+            .catch(e => { console.error('[AniVault player] anikoto list fetch threw', audio, e); return []; })
             .then(list => {
                 if (list.length > 0 || attempt >= 3) return list;
                 return new Promise(res => setTimeout(res, attempt * 1500))
@@ -365,6 +413,7 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         return fetch(\`\${SITE}/api/anikoto_stream.php?anime=\${ANIME}&ep=\${EP}&audio=\${audio}&server=\${encodeURIComponent(provider)}\`)
             .then(r => r.json()).then(d => {
                 const ok = !d.error && !!d.m3u8;
+                console.log('[AniVault player] anikoto', provider, audio, ok ? 'OK' : 'FAILED', d);
                 // Stash the response so the auto-activated first play
                 // (triggered right below in markServerFound) can reuse it
                 // instead of firing a second identical request at the
@@ -527,6 +576,9 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         });
         dubTaskDone();
     });
+  } catch (e) {
+    _showFatalClientError('probeAndRenderServers crashed: ' + (e && e.message ? e.message : e));
+  }
 })();
 
 var _ws={sub:${JSON.stringify(qSub)},dub:${JSON.stringify(qDub)}};
