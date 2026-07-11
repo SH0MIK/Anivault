@@ -406,6 +406,7 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
 
     function activateButton(audio, key) {
         playbackStarted = true;
+        _clearOverallWatchdog();
         document.querySelectorAll('.server-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === audio));
         document.querySelectorAll('.server-tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-panel-' + audio));
         const btn = document.querySelector(\`#tab-panel-\${audio} .server-btn[data-server="\${key}"]\`);
@@ -413,10 +414,21 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         switchToServer(key, audio);
     }
 
-    function showNoServersAtAll() {
+    function showNoServersAtAll(msg) {
         const pw = document.getElementById('watch-player-wrap');
-        if (pw) pw.innerHTML = \`<div style="display:flex;align-items:center;justify-content:center;height:100%;min-height:240px;color:var(--text-muted);font-family:var(--font-body);text-align:center;padding:1rem;">No working servers found for this episode.</div>\`;
+        if (pw) pw.innerHTML = \`<div style="display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;height:100%;min-height:240px;color:var(--text-muted);font-family:var(--font-body);text-align:center;padding:1rem;"><div>\${msg || 'No working servers found for this episode.'}</div><button onclick="location.reload()" style="padding:8px 16px;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;font:inherit;">Try Again</button></div>\`;
     }
+
+    // Hard overall cap — the individual probes (especially fetchAnikotoList's
+    // retry/backoff loop) have no client-side timeout of their own and can
+    // legitimately take a while if the scraper backend is slow, but the
+    // "Finding the best server..." screen should never sit there forever
+    // with no feedback. If nothing has started playing within 25s, give up
+    // and show a clear message + retry button instead of an endless spinner.
+    const _overallWatchdog = setTimeout(() => {
+        if (!playbackStarted) showNoServersAtAll('Servers are taking longer than usual to respond. The stream backend may be slow or down right now.');
+    }, 25000);
+    const _clearOverallWatchdog = () => clearTimeout(_overallWatchdog);
 
     function markServerFound(audio, key, label, badge) {
         const panel   = document.getElementById('tab-panel-' + audio);
@@ -447,7 +459,7 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
                 const firstBtn = document.querySelector('#tab-panel-dub .server-btn');
                 if (firstBtn) activateButton('dub', firstBtn.dataset.server);
             }
-            if (dubPending === 0 && !subHasAny && !dubHasAny && !playbackStarted) showNoServersAtAll();
+            if (dubPending === 0 && !subHasAny && !dubHasAny && !playbackStarted) { _clearOverallWatchdog(); showNoServersAtAll(); }
         } else if (subHasAny) {
             setSearching('sub', true);
         }
@@ -456,7 +468,7 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         dubPending--;
         if (dubPending === 0) {
             setSearching('dub', false);
-            if (subPending === 0 && !subHasAny && !dubHasAny && !playbackStarted) showNoServersAtAll();
+            if (subPending === 0 && !subHasAny && !dubHasAny && !playbackStarted) { _clearOverallWatchdog(); showNoServersAtAll(); }
         } else if (dubHasAny) {
             setSearching('dub', true);
         }
