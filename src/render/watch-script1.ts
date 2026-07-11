@@ -428,6 +428,35 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
             }).catch(() => false);
     }
 
+    // Same provider/audio can get probed twice in one page load once the
+    // "remembered last server" fast path below exists (it fires its own
+    // check immediately, then the normal anikoto-list loop discovers that
+    // same provider a moment later and would otherwise check it again).
+    // Some embed hosts hand out session/token-locked links that don't
+    // survive being requested twice in a row, so every caller goes through
+    // this dedup wrapper and shares one in-flight promise per provider.
+    const _anikotoInFlight = {};
+    function checkAnikotoProviderDedup(provider, audio) {
+        const dKey = audio + '::' + provider.toLowerCase().trim();
+        if (_anikotoInFlight[dKey]) return _anikotoInFlight[dKey];
+        const p = checkAnikotoProvider(provider, audio);
+        _anikotoInFlight[dKey] = p;
+        return p;
+    }
+
+    // ── Remembered server (from a previous successful load) ────────────────
+    // Reload/tab-kill wipes the in-memory probe cache, so normally every
+    // page load blind-races every provider from zero. If a provider worked
+    // last time for this anime, we already know its exact name — probing it
+    // directly here skips the anikoto-list round trip that the normal path
+    // needs before it can even start checking providers, so a repeat visit
+    // typically wins the race and starts playback faster.
+    let remembered = null;
+    try {
+        const raw = localStorage.getItem('av_srv_' + ANIME);
+        if (raw) remembered = JSON.parse(raw);
+    } catch (e) { /* storage disabled/blocked — just skip the fast path */ }
+
     // ── Incremental probing ───────────────────────────────────────────────
     // Every server check below runs independently (no Promise.all gate).
     // The instant ANY server for the active "sub" tab is confirmed, its
@@ -453,6 +482,12 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         }
     }
 
+    // anikoto-only: original-cased provider name for each "anikoto-{key}"
+    // button, so activateButton can save it for next time (SERVER_NAMES/
+    // buttons only carry the lowercased key, but the fast path above needs
+    // the real name to query the scraper with).
+    const _providerNameByKey = {};
+
     function activateButton(audio, key) {
         playbackStarted = true;
         _clearOverallWatchdog();
@@ -461,6 +496,11 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         const btn = document.querySelector(\`#tab-panel-\${audio} .server-btn[data-server="\${key}"]\`);
         if (btn) btn.classList.add('active');
         switchToServer(key, audio);
+        try {
+            localStorage.setItem('av_srv_' + ANIME, JSON.stringify({
+                audio, key, provider: _providerNameByKey[key] || null, ts: Date.now(),
+            }));
+        } catch (e) { /* storage disabled/full — non-critical, ignore */ }
     }
 
     function showNoServersAtAll(msg) {
@@ -551,13 +591,30 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
         animedunya:   'Dune',
     };
 
+    // Fast path: we already know a provider that worked last time — probe it
+    // directly instead of waiting on fetchAnikotoList to hand back the full
+    // provider list first. Goes through the dedup wrapper so if the normal
+    // list-based loop below reaches this same provider a moment later, it
+    // reuses this in-flight request instead of hitting the scraper twice.
+    if (remembered && remembered.provider && remembered.key && remembered.key.indexOf('anikoto-') === 0) {
+        const rAudio = remembered.audio === 'dub' ? 'dub' : 'sub';
+        const rKey = remembered.key;
+        _providerNameByKey[rKey] = remembered.provider;
+        if (rAudio === 'sub') subPending++; else dubPending++;
+        checkAnikotoProviderDedup(remembered.provider, rAudio).then(ok => {
+            if (ok) markServerFound(rAudio, rKey, SERVER_NAMES[rKey.slice(8)] ?? remembered.provider);
+            if (rAudio === 'sub') subTaskDone(); else dubTaskDone();
+        });
+    }
+
     checkAnimeHeaven('sub').then(ok => { if (ok) markServerFound('sub', 'animeheaven', SERVER_NAMES.animeheaven); subTaskDone(); });
 
     fetchAnikotoList('sub').then(list => {
         list.map(s => s.name).forEach(p => {
             const pKey = p.toLowerCase().trim();
+            _providerNameByKey[\`anikoto-\${pKey}\`] = p;
             subPending++;
-            checkAnikotoProvider(p, 'sub').then(ok => {
+            checkAnikotoProviderDedup(p, 'sub').then(ok => {
                 if (ok) markServerFound('sub', \`anikoto-\${pKey}\`, SERVER_NAMES[pKey] ?? ('AK-' + (pKey.charAt(0).toUpperCase() + pKey.slice(1))));
                 subTaskDone();
             });
@@ -568,8 +625,9 @@ document.querySelectorAll('.server-tab-panel').forEach(panel => {
     fetchAnikotoList('dub').then(list => {
         list.map(s => s.name).forEach(p => {
             const pKey = p.toLowerCase().trim();
+            _providerNameByKey[\`anikoto-\${pKey}\`] = p;
             dubPending++;
-            checkAnikotoProvider(p, 'dub').then(ok => {
+            checkAnikotoProviderDedup(p, 'dub').then(ok => {
                 if (ok) markServerFound('dub', \`anikoto-\${pKey}\`, SERVER_NAMES[pKey] ?? ('AK-' + (pKey.charAt(0).toUpperCase() + pKey.slice(1))));
                 dubTaskDone();
             });
