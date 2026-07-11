@@ -1,9 +1,10 @@
 export function watchScript1(params: {
   anilistId: number | null; epNum: number; resumeParam: number; animeId: number;
   siteUrl: string; qSub: any[]; qDub: any[]; isLoggedIn: boolean;
-}): string { 
+}): string {
   const { anilistId, epNum, resumeParam, animeId, siteUrl, qSub, qDub, isLoggedIn } = params;
   return `<script>
+console.log('[AniVault player] SCRIPT VERSION: debug-v3 (video lifecycle logging)');
 const anilistId = ${JSON.stringify(anilistId)};
 const epNum = ${epNum};
 const resumeTime = ${resumeParam};
@@ -255,7 +256,12 @@ function switchToAnimeHeaven(audio) {
             vid.removeEventListener('timeupdate', clearStallTimer);
             vid.removeEventListener('playing', clearStallTimer);
         }
-        const onPlaying = () => { console.log('[AniVault player] AnimeHeaven <video> "playing" fired — playback started OK'); settled = true; spinEl_hide(); cleanupErrorOnly(); };
+        const onPlaying = () => {
+            console.log('[AniVault player] AnimeHeaven <video> "playing" fired — playback started OK');
+            settled = true; spinEl_hide(); cleanupErrorOnly();
+            const preplayEl = document.getElementById('sp-preplay');
+            if (preplayEl) preplayEl.classList.add('hide');
+        };
         function cleanupErrorOnly() { vid.removeEventListener('error', onError); }
         const onError = () => {
             console.error('[AniVault player] AnimeHeaven <video> "error" event fired, settled=' + settled);
@@ -306,7 +312,32 @@ function switchToAnimeHeaven(audio) {
             console.log('[AniVault player] <video>.play() promise resolved');
         }).catch(err => {
             console.error('[AniVault player] <video>.play() promise rejected:', err && err.name, err && err.message);
-            /* actual failure is reported via the 'error' listener above, not here */
+            // Browsers block programmatic autoplay unless the page has
+            // recent user-gesture context — on a fresh navigation the tap
+            // that got you here counts, but on a reload that context is
+            // gone, so play() gets rejected even though the video is fully
+            // loaded and ready (readyState 4). Previously nothing handled
+            // this: the spinner only hid on the 'playing' event, which
+            // never fires if play() never actually starts — so it just
+            // spun forever with a perfectly good video sitting paused
+            // underneath. Surface the (already-built, previously unused)
+            // tap-to-play overlay instead.
+            if (err && err.name === 'NotAllowedError') {
+                spinEl_hide();
+                const preplayEl = document.getElementById('sp-preplay');
+                const ppBtn = document.getElementById('sp-pp-btn');
+                if (preplayEl) {
+                    preplayEl.classList.remove('hide');
+                    const startPlayback = () => {
+                        vid.play().then(() => {
+                            console.log('[AniVault player] tap-to-play succeeded');
+                        }).catch(err2 => {
+                            console.error('[AniVault player] tap-to-play also failed:', err2 && err2.name, err2 && err2.message);
+                        });
+                    };
+                    (ppBtn || preplayEl).addEventListener('click', startPlayback, { once: true });
+                }
+            }
         });
         // Hide HLS badge since this is MP4
         const badge = document.getElementById('sp-hls-badge');
