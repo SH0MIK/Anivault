@@ -64,15 +64,19 @@ apiListRoutes.on(['GET', 'POST'], '/api/list.php', async (c) => {
 });
 
 // ── api/notifications.php ──────────────────────────────────────────────────
-apiListRoutes.post('/api/notifications.php', async (c) => {
+// app.js hits this two different ways: the dropdown ("get"/"count") uses a
+// plain GET with the action in the query string, while mark-read/delete/etc
+// use POST with a FormData body. Accept both.
+apiListRoutes.on(['GET', 'POST'], '/api/notifications.php', async (c) => {
   const { db, session, lifetime, auth } = await buildCtx(c);
   if (!auth.check()) {
     await session.save(c, lifetime);
     return c.json({ success: false, message: 'Not logged in.' }, 401);
   }
   const userId = session.user_id!;
-  const body = await c.req.parseBody();
-  const action = (body.action as string) ?? '';
+  const body = c.req.method === 'POST' ? await c.req.parseBody() : ({} as Record<string, unknown>);
+  const action = (c.req.query('action') || (body.action as string) || '').trim();
+  const getParam = (key: string): string => (c.req.query(key) ?? (body[key] as string) ?? '');
 
   let result: any;
   switch (action) {
@@ -90,7 +94,7 @@ apiListRoutes.post('/api/notifications.php', async (c) => {
       break;
     }
     case 'read': {
-      const id = parseInt((body.id as string) ?? '0', 10) || 0;
+      const id = parseInt(getParam('id') || '0', 10) || 0;
       if (id) await Notification.markRead(db, id, userId);
       result = { success: true };
       break;
@@ -100,13 +104,13 @@ apiListRoutes.post('/api/notifications.php', async (c) => {
       result = { success: true };
       break;
     case 'delete': {
-      const id = parseInt((body.id as string) ?? '0', 10) || 0;
+      const id = parseInt(getParam('id') || '0', 10) || 0;
       if (id) await Notification.delete(db, id, userId);
       result = { success: true };
       break;
     }
     case 'like_review': {
-      const reviewId = parseInt((body.review_id as string) ?? '0', 10) || 0;
+      const reviewId = parseInt(getParam('review_id') || '0', 10) || 0;
       if (!reviewId) { result = { success: false, message: 'Invalid review.' }; break; }
       const review = await db.fetchOne<{ id: number; user_id: number; anime_id: number; anime_title: string | null }>(
         `SELECT r.*, al.anime_title as list_anime_title FROM reviews r
