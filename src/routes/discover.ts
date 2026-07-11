@@ -29,7 +29,7 @@ async function commonCtx(c: any) {
 }
 
 // ── pages/seasonal.php ────────────────────────────────────────────────────
-discoverRoutes.get('/pages/seasonal.php', async (c) => {
+discoverRoutes.get('/seasonal', async (c) => {
   const { db, session, lifetime, mal, unreadCount, userStatuses, layoutUser } = await commonCtx(c);
   const siteUrl = c.env.SITE_URL;
   const page = Math.max(1, parseInt(c.req.query('page') ?? '1', 10) || 1);
@@ -65,7 +65,7 @@ const TOP_FILTERS: Record<string, string> = {
   bypopularity: 'Most Popular', favorite: 'Most Favorited', airing: 'Top Airing', upcoming: 'Upcoming', byrank: 'By Score',
 };
 
-discoverRoutes.get('/pages/top.php', async (c) => {
+discoverRoutes.get('/top', async (c) => {
   const { db, session, lifetime, mal, unreadCount, userStatuses, layoutUser } = await commonCtx(c);
   const siteUrl = c.env.SITE_URL;
   const filter = c.req.query('filter') ?? 'bypopularity';
@@ -161,7 +161,7 @@ export function renderTopPagination(filter: string, page: number, totalPages: nu
 // ── pages/schedule.php ────────────────────────────────────────────────────
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
-discoverRoutes.get('/pages/schedule.php', async (c) => {
+discoverRoutes.get('/schedule', async (c) => {
   const { db, session, lifetime, mal, unreadCount, userStatuses, layoutUser } = await commonCtx(c);
   const siteUrl = c.env.SITE_URL;
 

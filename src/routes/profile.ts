@@ -20,7 +20,7 @@ import { getBannerData } from '../lib/settings';
 
 export const profileRoutes = new Hono<{ Bindings: Env }>();
 
-profileRoutes.on(['GET', 'POST'], '/pages/profile.php', async (c) => {
+profileRoutes.on(['GET', 'POST'], '/profile', async (c) => {
   const db = new Db(c.env.DB);
   const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
   const session = await Session.load(c, db, lifetime);
@@ -37,13 +37,13 @@ profileRoutes.on(['GET', 'POST'], '/pages/profile.php', async (c) => {
     if (body.social_action === 'connect') {
       const provider = body.provider === 'google' || body.provider === 'discord' ? body.provider : null;
       if (provider === 'google') {
-        session.data.oauth_redirect = `${siteUrl}/pages/profile.php`;
+        session.data.oauth_redirect = `${siteUrl}/profile`;
         const url = auth.getGoogleAuthUrl();
         await session.save(c, lifetime);
         return c.redirect(url);
       }
       if (provider === 'discord') {
-        session.data.oauth_redirect = `${siteUrl}/pages/profile.php`;
+        session.data.oauth_redirect = `${siteUrl}/profile`;
         const url = auth.getDiscordAuthUrl();
         await session.save(c, lifetime);
         return c.redirect(url);
@@ -143,8 +143,8 @@ async function renderProfilePage(c: any, db: Db, session: Session, lifetime: num
         </div>`).join('')}
 
         <div style="padding:1rem;display:flex;flex-direction:column;gap:6px;">
-          <a href="${siteUrl}/pages/mylist.php" class="btn btn-ghost btn-block btn-sm">${icon('list', 'icon-small')} My List</a>
-          <a href="${siteUrl}/pages/importexport.php" class="btn btn-ghost btn-block btn-sm">${icon('box', 'icon-small')} Import / Export</a>
+          <a href="${siteUrl}/mylist" class="btn btn-ghost btn-block btn-sm">${icon('list', 'icon-small')} My List</a>
+          <a href="${siteUrl}/importexport" class="btn btn-ghost btn-block btn-sm">${icon('box', 'icon-small')} Import / Export</a>
         </div>
       </div>
     </aside>
@@ -222,7 +222,7 @@ async function renderProfilePage(c: any, db: Db, session: Session, lifetime: num
         <div class="section-title">${icon('heart', 'icon-small')} Favorites</div>
         <div class="anime-grid">
           ${favs.slice(0, 8).map((fav: any) => `
-          <div class="anime-card" onclick="window.location.href='${siteUrl}/pages/anime.php?id=${fav.anime_id}'">
+          <div class="anime-card" onclick="window.location.href='${siteUrl}/anime?id=${fav.anime_id}'">
             <div class="anime-card-poster">${fav.anime_image ? `<img src="${h(fav.anime_image)}" alt="${h(fav.anime_title)}" loading="lazy">` : icon('user', 'icon-xl')}</div>
             <div class="anime-card-info"><div class="anime-card-title">${h(fav.anime_title)}</div></div>
           </div>`).join('')}

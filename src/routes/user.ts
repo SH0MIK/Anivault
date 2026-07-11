@@ -19,14 +19,14 @@ import { getBannerData } from '../lib/settings';
 
 export const userRoutes = new Hono<{ Bindings: Env }>();
 
-userRoutes.get('/pages/user.php', async (c) => {
+userRoutes.get('/u/:username', async (c) => {
   const db = new Db(c.env.DB);
   const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
   const session = await Session.load(c, db, lifetime);
   const auth = new Auth(db, session, c.env as any, c.req.header('cf-connecting-ip') ?? 'unknown');
   const siteUrl = c.env.SITE_URL;
 
-  const username = (c.req.query('u') ?? '').trim();
+  const username = (c.req.param('username') ?? c.req.query('u') ?? '').trim();
   if (!username) return c.redirect(siteUrl + '/');
 
   const currentUser = auth.check() ? await auth.getCurrentUser() : null;
@@ -92,7 +92,7 @@ userRoutes.get('/pages/user.php', async (c) => {
       <div style="flex:1;min-width:200px;">
         <div class="flex" style="align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
           <h1 class="username-with-badges" style="font-size:1.6rem;">${h(profileUser.username)}${Badge.renderList(profileBadges)}</h1>
-          ${isOwn ? `<a href="${siteUrl}/pages/profile.php" class="btn btn-ghost btn-sm">✏️ Edit Profile</a>`
+          ${isOwn ? `<a href="${siteUrl}/profile" class="btn btn-ghost btn-sm">✏️ Edit Profile</a>`
             : currentUser ? `<button class="btn ${isFollowing ? 'btn-ghost' : 'btn-primary'} btn-sm" id="follow-btn" onclick="toggleFollow(${profileId}, this)">${isFollowing ? '✓ Following' : '+ Follow'}</button>`
             : `<button onclick="requireLogin()" class="btn btn-primary btn-sm">+ Follow</button>`}
         </div>
@@ -134,12 +134,12 @@ userRoutes.get('/pages/user.php', async (c) => {
       ${recentList.items.length === 0 && listPage === 1 && !filterStatus ? `
       <div class="flex-center" style="padding:3rem;flex-direction:column;gap:1rem;"><span style="font-size:2.5rem;">📋</span><p class="text-muted">No anime in list yet.</p></div>` : `
       <div class="flex flex-wrap mb-2" style="gap:6px;">
-        <a href="${siteUrl}/pages/user.php?u=${h(username)}" class="genre-tag" style="${filterStatus === '' ? 'border-color:var(--accent);color:var(--accent)' : ''}">All (${stats.total})</a>
+        <a href="${siteUrl}/u/${h(username)}" class="genre-tag" style="${filterStatus === '' ? 'border-color:var(--accent);color:var(--accent)' : ''}">All (${stats.total})</a>
         ${['watching', 'completed', 'plan_to_watch', 'on_hold', 'dropped'].map((s) => {
           const cnt = (stats as any)[s];
           if (!cnt) return '';
           const label = s.replace(/_/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase());
-          return `<a href="${siteUrl}/pages/user.php?u=${h(username)}&status=${s}" class="genre-tag" style="${filterStatus === s ? 'border-color:var(--accent);color:var(--accent)' : ''}">${label} (${cnt})</a>`;
+          return `<a href="${siteUrl}/u/${h(username)}?status=${s}" class="genre-tag" style="${filterStatus === s ? 'border-color:var(--accent);color:var(--accent)' : ''}">${label} (${cnt})</a>`;
         }).join('')}
       </div>
       ${recentList.items.length === 0 ? `<div class="flex-center" style="padding:3rem;flex-direction:column;gap:1rem;"><span style="font-size:2.5rem;">📋</span><p class="text-muted">No anime in this category yet.</p></div>` : `
@@ -152,7 +152,7 @@ userRoutes.get('/pages/user.php', async (c) => {
               const jt = JSON.stringify(item.anime_title ?? '');
               const ji = JSON.stringify(item.anime_image ?? '');
               return `
-            <tr onclick="window.location.href='${siteUrl}/pages/anime.php?id=${item.anime_id}'" style="cursor:pointer;" data-anime-id="${item.anime_id}">
+            <tr onclick="window.location.href='${siteUrl}/anime?id=${item.anime_id}'" style="cursor:pointer;" data-anime-id="${item.anime_id}">
               <td class="text-muted">${(listPage - 1) * ITEMS_PER_PAGE + i + 1}</td>
               <td><div class="flex" style="gap:10px;align-items:center;">
                 ${item.anime_image ? `<img src="${h(item.anime_image)}" alt="" style="width:36px;height:50px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : ''}
@@ -223,7 +223,7 @@ userRoutes.get('/pages/user.php', async (c) => {
     const initial = u.username.charAt(0).toUpperCase();
     const avatar  = u.avatar_url ? \`<img src="\${u.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">\` : initial;
     const time = label === 'followers' ? \`Followed \${u.created_at}\` : \`Following since \${u.created_at}\`;
-    return \`<a href="/pages/user.php?u=\${encodeURIComponent(u.username)}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius-md);text-decoration:none;transition:var(--trans);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+    return \`<a href="/u/\${encodeURIComponent(u.username)}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius-md);text-decoration:none;transition:var(--trans);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
       <div class="nav-avatar" style="width:38px;height:38px;font-size:1rem;flex-shrink:0;">\${avatar}</div>
       <div><div style="color:var(--text-primary);font-weight:500;font-size:0.9rem;">\${u.username}</div><div class="text-muted" style="font-size:0.78rem;">\${time}</div></div>
     </a>\`;
@@ -290,7 +290,7 @@ async function toggleFollow(userId, btn) {
 
 function renderUserCard(u: any, badgeMap: Record<number, any[]>, siteUrl: string): string {
   return `
-<a href="${siteUrl}/pages/user.php?u=${h(u.username)}" class="card" style="padding:1rem;display:flex;align-items:center;gap:10px;text-decoration:none;">
+<a href="${siteUrl}/u/${h(u.username)}" class="card" style="padding:1rem;display:flex;align-items:center;gap:10px;text-decoration:none;">
   <div class="nav-avatar" style="width:44px;height:44px;font-size:1.1rem;flex-shrink:0;">
     ${u.avatar_url ? `<img src="${h(u.avatar_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : h(u.username.charAt(0).toUpperCase())}
   </div>
@@ -303,7 +303,7 @@ function renderUserCard(u: any, badgeMap: Record<number, any[]>, siteUrl: string
 
 function renderModalUserRow(u: any, badgeMap: Record<number, any[]>, siteUrl: string, timeLabel: string): string {
   return `
-<a href="${siteUrl}/pages/user.php?u=${h(u.username)}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius-md);text-decoration:none;transition:var(--trans);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+<a href="${siteUrl}/u/${h(u.username)}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--radius-md);text-decoration:none;transition:var(--trans);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
   <div class="nav-avatar" style="width:38px;height:38px;font-size:1rem;flex-shrink:0;">
     ${u.avatar_url ? `<img src="${h(u.avatar_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : h(u.username.charAt(0).toUpperCase())}
   </div>
@@ -315,7 +315,7 @@ function renderModalUserRow(u: any, badgeMap: Record<number, any[]>, siteUrl: st
 }
 
 export function renderUserListPagination(siteUrl: string, username: string, filterStatus: string, page: number, pages: number, total: number): string {
-  let baseUrl = `${siteUrl}/pages/user.php?u=${h(username)}&`;
+  let baseUrl = `${siteUrl}/u/${h(username)}?`;
   if (filterStatus) baseUrl += `status=${encodeURIComponent(filterStatus)}&`;
   baseUrl += 'page=';
 

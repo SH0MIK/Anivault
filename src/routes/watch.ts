@@ -106,7 +106,7 @@ async function getEpisodeOgImage(animeId: number, epNum: number, fallback: strin
   return fallback;
 }
 
-watchRoutes.get('/pages/watch.php', async (c) => {
+watchRoutes.get('/watch', async (c) => {
   const db = new Db(c.env.DB);
   const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
   const session = await Session.load(c, db, lifetime);
@@ -221,7 +221,7 @@ watchRoutes.get('/pages/watch.php', async (c) => {
       title: `Ep ${epNum} — ${title} | AniVault`,
       description: `"${currentEpInfo?.title && currentEpInfo.title !== 'TBA' ? currentEpInfo.title : 'Episode ' + epNum}" · Watch on AniVault`,
       image: ogImage, image_width: 1280, image_height: 720,
-      url: `${siteUrl}/pages/watch.php?anime=${animeId}&ep=${epNum}`,
+      url: `${siteUrl}/watch?anime=${animeId}&ep=${epNum}`,
       type: 'video.episode',
     },
   });
@@ -254,7 +254,7 @@ watchRoutes.get('/pages/watch.php', async (c) => {
 
   // Senshi player -- pre-rendered hidden, moved into #watch-player-wrap by
   // the server-switching script on demand (same DOM-move pattern as the PHP version).
-  const watchBase = `${siteUrl}/pages/watch.php?anime=${animeId}&ep=`;
+  const watchBase = `${siteUrl}/watch?anime=${animeId}&ep=`;
   let epNums: number[] = [];
   if (allVideos.length > 0) epNums = allVideos.map((v) => v.episode_num);
   else if (allEps.length > 0) epNums = allEps.map((e: any) => Number(e.mal_id ?? 0)).filter((n) => n > 0);
@@ -319,7 +319,7 @@ export function renderWatchBody(p: WatchBodyParams): string {
   const score = anime.score;
   const status = anime.status ?? '';
   const animeType = anime.type ?? '';
-  const animePage = `${siteUrl}/pages/anime.php?id=${animeId}`;
+  const animePage = `${siteUrl}/anime?id=${animeId}`;
 
   const hasRealVideo = !!video && (qSub.length > 0 || !!video.video_url);
 
@@ -370,9 +370,9 @@ export function renderWatchBody(p: WatchBodyParams): string {
 
   const navHtml = (prevEp || nextEp) ? `
         <div class="wp-nav">
-          ${prevEp ? `<a href="${siteUrl}/pages/watch.php?anime=${animeId}&ep=${prevEp}" class="wp-nav-btn"><svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg><div class="wp-nav-inner"><span class="wp-nav-lbl">Previous</span><span class="wp-nav-ep">Episode ${prevEp}</span></div></a>`
+          ${prevEp ? `<a href="${siteUrl}/watch?anime=${animeId}&ep=${prevEp}" class="wp-nav-btn"><svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg><div class="wp-nav-inner"><span class="wp-nav-lbl">Previous</span><span class="wp-nav-ep">Episode ${prevEp}</span></div></a>`
             : `<div class="wp-nav-btn disabled"><svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6z"/></svg><div class="wp-nav-inner"><span class="wp-nav-lbl">Previous</span><span class="wp-nav-ep">—</span></div></div>`}
-          ${nextEp ? `<a href="${siteUrl}/pages/watch.php?anime=${animeId}&ep=${nextEp}" class="wp-nav-btn next"><div class="wp-nav-inner"><span class="wp-nav-lbl">Next</span><span class="wp-nav-ep">Episode ${nextEp}</span></div><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></a>`
+          ${nextEp ? `<a href="${siteUrl}/watch?anime=${animeId}&ep=${nextEp}" class="wp-nav-btn next"><div class="wp-nav-inner"><span class="wp-nav-lbl">Next</span><span class="wp-nav-ep">Episode ${nextEp}</span></div><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></a>`
             : `<div class="wp-nav-btn next disabled"><div class="wp-nav-inner"><span class="wp-nav-lbl">Next</span><span class="wp-nav-ep">—</span></div><svg viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></div>`}
         </div>` : '';
 
@@ -391,7 +391,7 @@ export function renderWatchBody(p: WatchBodyParams): string {
             const role = chEntry.role ?? '';
             const img = ch.images?.jpg?.image_url ?? '';
             return `
-          <a href="${siteUrl}/pages/character.php?id=${charId}" class="char-v2">
+          <a href="${siteUrl}/character?id=${charId}" class="char-v2">
             <div class="char-v2-img-wrap">
               ${img ? `<img src="${h(img)}" class="char-v2-img" alt="${h(ch.name ?? '')}" loading="lazy">` : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:var(--bg-surface)">🎭</div>`}
               <div class="char-v2-role-badge">${h(role)}</div>
@@ -412,7 +412,7 @@ export function renderWatchBody(p: WatchBodyParams): string {
       const hasVid = videoEpNumSet.has(n);
       const isAct = n === epNum;
       return `
-          <a href="${h(`${siteUrl}/pages/watch.php?anime=${animeId}&ep=${n}`)}"
+          <a href="${h(`${siteUrl}/watch?anime=${animeId}&ep=${n}`)}"
              class="ep-item${hasVid ? ' playable' : ''}${isAct ? ' active' : ''}"
              data-s="${h(`ep ${n} ${ept || 'episode ' + n}`.toLowerCase())}">
             <div class="ep-thumb-box" data-ep="${n}">
@@ -429,7 +429,7 @@ export function renderWatchBody(p: WatchBodyParams): string {
       const n = v.episode_num;
       const isAct = n === epNum;
       return `
-          <a href="${siteUrl}/pages/watch.php?anime=${animeId}&ep=${n}" class="ep-item playable${isAct ? ' active' : ''}" data-s="ep ${n} ${(v.title || 'episode ' + n).toLowerCase()}">
+          <a href="${siteUrl}/watch?anime=${animeId}&ep=${n}" class="ep-item playable${isAct ? ' active' : ''}" data-s="ep ${n} ${(v.title || 'episode ' + n).toLowerCase()}">
             <div class="ep-thumb-box" data-ep="${n}">
               <img src="${h(coverSm)}" alt="" class="ep-thumb-img" loading="lazy" onload="this.classList.add('vis')">
               <div class="ep-play-ov"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>

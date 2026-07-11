@@ -16,7 +16,7 @@ import { renderHeader, renderFooter, CurrentUser } from '../render/layout';
 
 export const watchNowRoutes = new Hono<{ Bindings: Env }>();
 
-watchNowRoutes.get('/pages/watch-now.php', async (c) => {
+watchNowRoutes.get('/watch-now', async (c) => {
   const db = new Db(c.env.DB);
   const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
   const session = await Session.load(c, db, lifetime);

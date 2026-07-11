@@ -93,12 +93,12 @@ authRoutes.get('/pages/oauth_google.php', async (c) => {
   if (error || !code) {
     session.setFlash('error', 'Google login was cancelled.');
     await session.save(c, lifetime);
-    return c.redirect(`${siteUrl}/pages/login.php`);
+    return c.redirect(`${siteUrl}/login`);
   }
 
   const isConnecting = auth.check();
   const redirect = isConnecting
-    ? `${siteUrl}/pages/profile.php`
+    ? `${siteUrl}/profile`
     : (session.data.oauth_redirect as string) ?? `${siteUrl}/`;
 
   const result = await auth.loginWithGoogle(code, state);
@@ -116,7 +116,7 @@ authRoutes.get('/pages/oauth_google.php', async (c) => {
       session.setFlash('error', result.message ?? 'Google login failed.');
     }
     await session.save(c, lifetime);
-    return c.redirect(isConnecting ? `${siteUrl}/pages/profile.php` : `${siteUrl}/pages/login.php`);
+    return c.redirect(isConnecting ? `${siteUrl}/profile` : `${siteUrl}/login`);
   }
 });
 
@@ -133,12 +133,12 @@ authRoutes.get('/pages/oauth_discord.php', async (c) => {
   if (error || !code) {
     session.setFlash('error', 'Discord login was cancelled.');
     await session.save(c, lifetime);
-    return c.redirect(`${siteUrl}/pages/login.php`);
+    return c.redirect(`${siteUrl}/login`);
   }
 
   const isConnecting = auth.check();
   const redirect = isConnecting
-    ? `${siteUrl}/pages/profile.php`
+    ? `${siteUrl}/profile`
     : (session.data.oauth_redirect as string) ?? `${siteUrl}/`;
 
   const result = await auth.loginWithDiscord(code, state);
@@ -156,7 +156,7 @@ authRoutes.get('/pages/oauth_discord.php', async (c) => {
       session.setFlash('error', result.message ?? 'Discord login failed.');
     }
     await session.save(c, lifetime);
-    return c.redirect(isConnecting ? `${siteUrl}/pages/profile.php` : `${siteUrl}/pages/login.php`);
+    return c.redirect(isConnecting ? `${siteUrl}/profile` : `${siteUrl}/login`);
   }
 });
 

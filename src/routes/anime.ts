@@ -21,7 +21,7 @@ export const animeRoutes = new Hono<{ Bindings: Env }>();
 
 const SERIES_RELATION_TYPES = ['Sequel', 'Prequel', 'Alternative Version', 'Alternative Setting', 'Side Story', 'Parent Story', 'Full Story', 'Summary', 'Movie', 'Spin-off'];
 
-animeRoutes.get('/pages/anime.php', async (c) => {
+animeRoutes.get('/anime', async (c) => {
   const db = new Db(c.env.DB);
   const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
   const session = await Session.load(c, db, lifetime);
@@ -93,7 +93,7 @@ animeRoutes.get('/pages/anime.php', async (c) => {
     requestUrl: c.req.url,
     ogData: {
       title, description: (anime.synopsis ?? '').substring(0, 200), image, image_width: 600, image_height: 850,
-      url: `${siteUrl}/pages/anime.php?id=${id}`, type: 'video.tv_show',
+      url: `${siteUrl}/anime?id=${id}`, type: 'video.tv_show',
     },
   });
 
@@ -164,7 +164,7 @@ animeRoutes.get('/pages/anime.php', async (c) => {
 
       ${anime.genres?.length ? `
       <div class="flex flex-wrap mb-2" style="gap:6px;">
-        ${anime.genres.map((g) => `<a href="${siteUrl}/pages/browse.php?genre=${g.mal_id}" class="genre-tag">${h(g.name)}</a>`).join('')}
+        ${anime.genres.map((g) => `<a href="${siteUrl}/browse?genre=${g.mal_id}" class="genre-tag">${h(g.name)}</a>`).join('')}
       </div>` : ''}
 
       <div class="flex gap-1 flex-wrap" style="gap:8px;margin-top:1rem;">

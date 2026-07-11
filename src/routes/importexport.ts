@@ -34,7 +34,7 @@ async function getLocalAnimeImage(db: Db, animeId: number): Promise<string> {
 }
 
 // ── pages/importexport.php (export=xml / export=json handled first) ───────
-importExportRoutes.get('/pages/importexport.php', async (c) => {
+importExportRoutes.get('/importexport', async (c) => {
   const db = new Db(c.env.DB);
   const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
   const session = await Session.load(c, db, lifetime);

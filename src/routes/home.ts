@@ -106,10 +106,10 @@ homeRoutes.get('/', async (c) => {
   <p class="hero-sub">Track what you watch, discover what's trending, and never lose your place again.</p>
   <div class="flex flex-center gap-1 hero-actions">
     ${!currentUser ? `
-    <a href="${siteUrl}/pages/register.php" class="btn btn-primary btn-lg">${icon('plus', 'icon-small')} Get Started</a>
-    <a href="${siteUrl}/pages/browse.php" class="btn btn-ghost btn-lg">${icon('search', 'icon-small')} Browse</a>` : `
-    <a href="${siteUrl}/pages/mylist.php" class="btn btn-primary btn-lg">${icon('list', 'icon-small')} My List</a>
-    <a href="${siteUrl}/pages/browse.php" class="btn btn-ghost btn-lg">${icon('search', 'icon-small')} Discover More</a>`}
+    <a href="${siteUrl}/register" class="btn btn-primary btn-lg">${icon('plus', 'icon-small')} Get Started</a>
+    <a href="${siteUrl}/browse" class="btn btn-ghost btn-lg">${icon('search', 'icon-small')} Browse</a>` : `
+    <a href="${siteUrl}/mylist" class="btn btn-primary btn-lg">${icon('list', 'icon-small')} My List</a>
+    <a href="${siteUrl}/browse" class="btn btn-ghost btn-lg">${icon('search', 'icon-small')} Discover More</a>`}
   </div>
 </div>
 
@@ -140,7 +140,7 @@ homeRoutes.get('/', async (c) => {
     </div>
     <div class="cw-show-more-wrap">
       <div class="cw-show-more-line"></div>
-      <a href="${siteUrl}/pages/history.php" class="cw-show-more-btn">
+      <a href="${siteUrl}/history" class="cw-show-more-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 8 12 16"/><polyline points="8 12 12 16 16 12"/></svg>
         View Full History
       </a>
@@ -165,7 +165,7 @@ homeRoutes.get('/', async (c) => {
     .wn-more-btn  { background:none; border:1px solid var(--border, rgba(255,255,255,.15)); color:var(--text-muted); font-size:.78rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; padding:.45rem 1.4rem; border-radius:999px; white-space:nowrap; text-decoration:none; transition:color .15s, border-color .15s; }
     .wn-more-btn:hover { color:var(--text-primary); border-color:var(--accent, #e00); }
     </style>
-    <div class="wn-more-wrap"><div class="wn-line"></div><a href="${siteUrl}/pages/watch-now.php" class="wn-more-btn">Show More</a><div class="wn-line"></div></div>` : ''}
+    <div class="wn-more-wrap"><div class="wn-line"></div><a href="${siteUrl}/watch-now" class="wn-more-btn">Show More</a><div class="wn-line"></div></div>` : ''}
   </section>`;
   }
 
@@ -176,13 +176,13 @@ homeRoutes.get('/', async (c) => {
     ${seasonalList.length === 0
       ? `<p class="text-muted text-center">Could not load seasonal anime. API may be rate limited — try again shortly.</p>`
       : `<div class="anime-grid">${seasonalList.map((a) => renderAnimeCard(a, siteUrl, userStatuses[a.mal_id] ?? null)).join('')}</div>`}
-    <div class="text-center mt-2"><a href="${siteUrl}/pages/seasonal.php" class="btn btn-ghost">${icon('arrow-right', 'icon-small')} View All Seasonal →</a></div>
+    <div class="text-center mt-2"><a href="${siteUrl}/seasonal" class="btn btn-ghost">${icon('arrow-right', 'icon-small')} View All Seasonal →</a></div>
   </section>
 
   <section class="section">
     <div class="section-title">${icon('trophy', 'icon-small')} Top Anime</div>
     <div class="anime-grid">${topList.map((a) => renderAnimeCard(a, siteUrl, userStatuses[a.mal_id] ?? null)).join('')}</div>
-    <div class="text-center mt-2"><a href="${siteUrl}/pages/top.php" class="btn btn-ghost">${icon('arrow-right', 'icon-small')} View Full Rankings →</a></div>
+    <div class="text-center mt-2"><a href="${siteUrl}/top" class="btn btn-ghost">${icon('arrow-right', 'icon-small')} View Full Rankings →</a></div>
   </section>`;
 
   if (upcomingList.length > 0) {
@@ -201,7 +201,7 @@ homeRoutes.get('/', async (c) => {
 });
 
 function renderContinueWatchingCard(hRow: WatchHistoryRow, siteUrl: string): string {
-  const watchUrl = `${siteUrl}/pages/watch.php?anime=${hRow.anime_id}&ep=${hRow.episode_num}`;
+  const watchUrl = `${siteUrl}/watch?anime=${hRow.anime_id}&ep=${hRow.episode_num}`;
   const thumbSrc = hRow.ep_thumb || '';
   const epNum = hRow.episode_num;
   const animeTitle = h(hRow.anime_title || `Anime #${hRow.anime_id}`);

@@ -14,7 +14,7 @@ import { getBannerData } from '../lib/settings';
 
 export const browseRoutes = new Hono<{ Bindings: Env }>();
 
-browseRoutes.get('/pages/browse.php', async (c) => {
+browseRoutes.get('/browse', async (c) => {
   const db = new Db(c.env.DB);
   const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
   const session = await Session.load(c, db, lifetime);
@@ -173,10 +173,10 @@ browseRoutes.get('/pages/browse.php', async (c) => {
 });
 
 // ── pages/search.php — old behavior was just a redirect into browse.php ──
-browseRoutes.get('/pages/search.php', (c) => {
+browseRoutes.get('/search', (c) => {
   const q = (c.req.query('q') ?? '').trim();
   const siteUrl = c.env.SITE_URL;
-  return c.redirect(q ? `${siteUrl}/pages/browse.php?q=${encodeURIComponent(q)}` : `${siteUrl}/pages/browse.php`);
+  return c.redirect(q ? `${siteUrl}/browse?q=${encodeURIComponent(q)}` : `${siteUrl}/browse`);
 });
 
 // ── api/search_suggest.php — live search dropdown ─────────────────────────

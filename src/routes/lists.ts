@@ -35,7 +35,7 @@ async function commonLayoutData(db: Db, auth: Auth) {
 }
 
 // ── pages/mylist.php ───────────────────────────────────────────────────────
-listRoutes.on(['GET', 'POST'], '/pages/mylist.php', async (c) => {
+listRoutes.on(['GET', 'POST'], '/mylist', async (c) => {
   const ctx = await requireLoginCtx(c);
   const siteUrl = c.env.SITE_URL;
   if (!ctx) return c.redirect(siteUrl + '/');
@@ -57,7 +57,7 @@ listRoutes.on(['GET', 'POST'], '/pages/mylist.php', async (c) => {
           const { Logger } = await import('../lib/logger');
           await Logger.log(db, userId, 'delete_full_list', `Deleted entire anime list (${count} entries)`);
           await session.save(c, lifetime);
-          return c.redirect(`${siteUrl}/pages/mylist.php?deleted=1`);
+          return c.redirect(`${siteUrl}/mylist?deleted=1`);
         } else {
           errorMsg = 'Your list is already empty.';
         }
@@ -92,7 +92,7 @@ listRoutes.on(['GET', 'POST'], '/pages/mylist.php', async (c) => {
 <div class="container section">
   <div class="flex-between mb-3">
     <h1>${icon('list', 'icon-large')} My Anime List</h1>
-    <a href="${siteUrl}/pages/browse.php" class="btn btn-primary btn-sm">${icon('plus', 'icon-small')} Add Anime</a>
+    <a href="${siteUrl}/browse" class="btn btn-primary btn-sm">${icon('plus', 'icon-small')} Add Anime</a>
   </div>
 
   ${showSuccess ? `<div class="alert alert-success mb-2">${icon('check', 'icon-small')} ${h(successMsg ?? 'Your list has been cleared successfully.')}</div>` : ''}
@@ -123,10 +123,10 @@ listRoutes.on(['GET', 'POST'], '/pages/mylist.php', async (c) => {
   <div class="flex-center" style="padding:4rem;flex-direction:column;gap:1rem;">
     ${icon('list', 'icon-xl', '48px')}
     <p class="text-muted">No anime in this list yet.</p>
-    <a href="${siteUrl}/pages/browse.php" class="btn btn-primary">${icon('search', 'icon-small')} Browse Anime</a>
+    <a href="${siteUrl}/browse" class="btn btn-primary">${icon('search', 'icon-small')} Browse Anime</a>
   </div>` : `
   <div class="flex-between mb-3" style="flex-wrap: wrap; gap: 1rem;">
-    <div class="flex gap-1"><a href="${siteUrl}/pages/importexport.php" class="btn btn-ghost btn-sm">${icon('box', 'icon-small')} Import / Export</a></div>
+    <div class="flex gap-1"><a href="${siteUrl}/importexport" class="btn btn-ghost btn-sm">${icon('box', 'icon-small')} Import / Export</a></div>
     ${stats.total > 0 ? `<button type="button" class="btn btn-danger btn-sm" id="delete-full-list-btn" onclick="confirmDeleteFullList()">${icon('trash', 'icon-small')} Delete Entire List (${stats.total.toLocaleString('en-US')} items)</button>` : ''}
   </div>
 
@@ -143,7 +143,7 @@ listRoutes.on(['GET', 'POST'], '/pages/mylist.php', async (c) => {
           <td>${(page - 1) * ITEMS_PER_PAGE + i + 1}</td>
           <td><div class="flex" style="gap:12px;align-items:center;">
             ${item.anime_image ? `<img src="${h(item.anime_image)}" alt="" style="width:40px;height:56px;object-fit:cover;border-radius:4px;flex-shrink:0;">` : icon('user', 'icon-medium')}
-            <a href="${siteUrl}/pages/anime.php?id=${item.anime_id}" style="color:var(--text-primary);font-weight:500;font-size:0.9rem;">${h(item.anime_title ?? '')}</a>
+            <a href="${siteUrl}/anime?id=${item.anime_id}" style="color:var(--text-primary);font-weight:500;font-size:0.9rem;">${h(item.anime_title ?? '')}</a>
           </div></td>
           <td data-cell="status">${statusBadge(item.status)}</td>
           <td data-cell="progress">
@@ -176,7 +176,7 @@ listRoutes.on(['GET', 'POST'], '/pages/mylist.php', async (c) => {
       <h4 style="text-align: center; margin-bottom: 1rem;">This action cannot be undone!</h4>
       <p style="text-align: center; color: var(--text-secondary); margin-bottom: 1.5rem;">You are about to delete <strong>${stats.total.toLocaleString('en-US')}</strong> anime entries from your list.</p>
       <div style="background:rgba(232,69,60,0.1); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
-        <p style="font-size: 0.85rem; margin: 0;">${icon('info', 'icon-small')} <strong>Tip:</strong> <a href="${siteUrl}/pages/importexport.php" style="color: var(--accent);">Export your list</a> first if you want to keep a backup.</p>
+        <p style="font-size: 0.85rem; margin: 0;">${icon('info', 'icon-small')} <strong>Tip:</strong> <a href="${siteUrl}/importexport" style="color: var(--accent);">Export your list</a> first if you want to keep a backup.</p>
       </div>
       <form method="POST" id="delete-full-list-form">
         <input type="hidden" name="action" value="delete_full_list">
@@ -246,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ── pages/favorites.php ────────────────────────────────────────────────────
-listRoutes.get('/pages/favorites.php', async (c) => {
+listRoutes.get('/favorites', async (c) => {
   const ctx = await requireLoginCtx(c);
   const siteUrl = c.env.SITE_URL;
   if (!ctx) return c.redirect(siteUrl + '/');
@@ -281,7 +281,7 @@ listRoutes.get('/pages/favorites.php', async (c) => {
 });
 
 // ── pages/history.php ──────────────────────────────────────────────────────
-listRoutes.get('/pages/history.php', async (c) => {
+listRoutes.get('/history', async (c) => {
   const ctx = await requireLoginCtx(c);
   const siteUrl = c.env.SITE_URL;
   if (!ctx) return c.redirect(siteUrl + '/');
@@ -314,7 +314,7 @@ listRoutes.get('/pages/history.php', async (c) => {
     <div class="hist-empty">
       <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <p>No watch history yet.</p>
-      <a href="${siteUrl}/pages/browse.php" style="color:var(--accent,#e00);font-weight:600;text-decoration:none;">Browse Anime →</a>
+      <a href="${siteUrl}/browse" style="color:var(--accent,#e00);font-weight:600;text-decoration:none;">Browse Anime →</a>
     </div>` : history.map((hRow) => renderHistoryCard(hRow, siteUrl)).join('')}
   </div>
 
@@ -443,7 +443,7 @@ async function clearAll(btn) {
       body: JSON.stringify({ action: 'clear' })
     });
     document.getElementById('hist-grid').innerHTML =
-      '<div class="hist-empty"><p>No watch history yet.</p><a href="${siteUrl}/pages/browse.php" style="color:var(--accent,#e00);font-weight:600;text-decoration:none;">Browse Anime →</a></div>';
+      '<div class="hist-empty"><p>No watch history yet.</p><a href="${siteUrl}/browse" style="color:var(--accent,#e00);font-weight:600;text-decoration:none;">Browse Anime →</a></div>';
     btn.remove();
   } catch(e) { btn.disabled = false; }
 }
@@ -455,7 +455,7 @@ async function clearAll(btn) {
 });
 
 export function renderHistoryCard(hRow: any, siteUrl: string): string {
-  const watchUrl = `${siteUrl}/pages/watch.php?anime=${hRow.anime_id}&ep=${hRow.episode_num}`;
+  const watchUrl = `${siteUrl}/watch?anime=${hRow.anime_id}&ep=${hRow.episode_num}`;
   const epNum = hRow.episode_num;
   const animeTitle = h(hRow.anime_title || `Anime #${hRow.anime_id}`);
   const epTitle = hRow.ep_title ? h(hRow.ep_title) : `Episode ${epNum}`;
@@ -507,7 +507,7 @@ export function renderHistPagination(page: number, totalPages: number): string {
 }
 
 // ── pages/notifications.php ────────────────────────────────────────────────
-listRoutes.get('/pages/notifications.php', async (c) => {
+listRoutes.get('/notifications', async (c) => {
   const ctx = await requireLoginCtx(c);
   const siteUrl = c.env.SITE_URL;
   if (!ctx) return c.redirect(siteUrl + '/');
@@ -537,7 +537,7 @@ listRoutes.get('/pages/notifications.php', async (c) => {
     ${icon('bell', 'icon-xl', '64px')}
     <h2>All caught up!</h2>
     <p class="text-muted">You have no notifications yet.<br>Follow people and interact with the community!</p>
-    <a href="${siteUrl}/pages/browse.php" class="btn btn-primary">${icon('search', 'icon-small')} Discover Anime</a>
+    <a href="${siteUrl}/browse" class="btn btn-primary">${icon('search', 'icon-small')} Discover Anime</a>
   </div>` : `
   <div style="display:flex;flex-direction:column;gap:6px;">
     ${notifs.map((n) => {
@@ -546,7 +546,7 @@ listRoutes.get('/pages/notifications.php', async (c) => {
       const unreadStyle = !n.is_read ? 'border-color:rgba(232,69,60,0.25);background:rgba(232,69,60,0.04);' : '';
       return `
     <div class="card" style="display:flex;align-items:flex-start;gap:14px;padding:14px 16px;${unreadStyle}" id="notif-${n.id}">
-      <a href="${siteUrl}/pages/user.php?u=${h(n.actor_name ?? '')}" style="flex-shrink:0;position:relative;">
+      <a href="${siteUrl}/u/${h(n.actor_name ?? '')}" style="flex-shrink:0;position:relative;">
         <div class="nav-avatar" style="width:46px;height:46px;font-size:1.1rem;">
           ${n.actor_avatar ? `<img src="${h(n.actor_avatar)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : (n.actor_name ?? '?').charAt(0).toUpperCase()}
         </div>
@@ -581,7 +581,7 @@ async function deleteNotif(id) {
 });
 
 // ── pages/announcements.php ────────────────────────────────────────────────
-listRoutes.get('/pages/announcements.php', async (c) => {
+listRoutes.get('/announcements', async (c) => {
   const db = new Db(c.env.DB);
   const lifetime = Number(c.env.SESSION_LIFETIME_SECONDS ?? 86400);
   const session = await Session.load(c, db, lifetime);

@@ -27,7 +27,7 @@ async function commonLayoutData(c: any) {
 
 const lastUpdated = () => new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-legalRoutes.get('/pages/privacy.php', async (c) => {
+legalRoutes.get('/privacy', async (c) => {
   const siteUrl = c.env.SITE_URL;
   const { db, session, lifetime, layoutUser, unreadCount } = await commonLayoutData(c);
   const __banner = await getBannerData(db);
@@ -38,7 +38,7 @@ legalRoutes.get('/pages/privacy.php', async (c) => {
   return c.html(html);
 });
 
-legalRoutes.get('/pages/terms.php', async (c) => {
+legalRoutes.get('/terms', async (c) => {
   const siteUrl = c.env.SITE_URL;
   const { db, session, lifetime, layoutUser, unreadCount } = await commonLayoutData(c);
   const __banner = await getBannerData(db);

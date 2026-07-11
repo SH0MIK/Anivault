@@ -332,7 +332,7 @@ scraperRoutes.get('/api/embed.php', async (c) => {
     }
   } catch { /* fall back to anime cover */ }
 
-  const watchUrl = `${siteUrl}/pages/watch.php?anime=${animeId}&ep=${epNum}`;
+  const watchUrl = `${siteUrl}/watch?anime=${animeId}&ep=${epNum}`;
   const html = `<!DOCTYPE html>
 <html>
 <head>
