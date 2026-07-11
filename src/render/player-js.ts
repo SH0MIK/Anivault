@@ -645,6 +645,20 @@ function loadHLS(m3u8){
   if(hls){hls.destroy();hls=null}
   currentM3u8=m3u8;segsLoaded=0;
   spin(true);hideError();
+  // hls.js only tells us about *fatal* errors — a connection that stalls
+  // mid-transfer (mobile radio still waking up, weak signal) never fires
+  // one, it just leaves the manifest/segments trickling in too slowly to
+  // ever reach 'playing'. Nothing was watching for that silent case, so
+  // the spinner could sit there forever. This loadToken guards against a
+  // stale timeout firing after a newer loadHLS() call has already taken
+  // over (e.g. the user switched servers again before the old one settled).
+  const loadToken=(loadHLS._token=(loadHLS._token||0)+1);
+  const stallWatchdog=setTimeout(()=>{
+    if(loadHLS._token!==loadToken)return;
+    if(!vid.paused&&vid.currentTime>0)return;
+    showError('Stream stalled — try another server.');
+  },12000);
+  vid.addEventListener('playing',()=>clearTimeout(stallWatchdog),{once:true});
   if(window.Hls&&Hls.isSupported()){
     hls=new Hls({
       enableWorker:true,lowLatencyMode:false,
