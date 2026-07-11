@@ -457,7 +457,7 @@ export function privacyBody(siteUrl: string, lastUpdated: string): string {
         <span style="color:var(--text-secondary);font-size:0.9rem">We aim to respond within 1 business days.</span>
       </div>
       <p class="mt-2" style="font-size:0.85rem;color:var(--text-muted);">
-        Also see: <a href="${siteUrl}/pages/terms.php">Terms of Use</a>
+        Also see: <a href="${siteUrl}/terms">Terms of Use</a>
       </p>
     </div>
 

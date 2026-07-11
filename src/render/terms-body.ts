@@ -289,7 +289,7 @@ export function termsBody(siteUrl: string, lastUpdated: string): string {
       <div class="legal-highlight">
         <strong>These terms form a legal agreement between you and AniVault.</strong> If you do not agree to these terms, you must not access or use the Service.
       </div>
-      <p>These Terms apply to all visitors, registered users, and anyone else who accesses the Service. Use of AniVault also constitutes acceptance of our <a href="${siteUrl}/pages/privacy.php">Privacy Policy</a>, which is incorporated herein by reference.</p>
+      <p>These Terms apply to all visitors, registered users, and anyone else who accesses the Service. Use of AniVault also constitutes acceptance of our <a href="${siteUrl}/privacy">Privacy Policy</a>, which is incorporated herein by reference.</p>
     </div>
 
     <div class="legal-divider"></div>
@@ -494,7 +494,7 @@ export function termsBody(siteUrl: string, lastUpdated: string): string {
         <span style="color:var(--text-secondary);font-size:0.9rem">We aim to respond within 1 business days.</span>
       </div>
       <p class="mt-2" style="font-size:0.85rem;color:var(--text-muted);">
-        Also see: <a href="${siteUrl}/pages/privacy.php">Privacy Policy</a>
+        Also see: <a href="${siteUrl}/privacy">Privacy Policy</a>
       </p>
     </div>
 

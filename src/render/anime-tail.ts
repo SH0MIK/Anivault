@@ -123,7 +123,7 @@ export function animeTailScript(animeDubConfirmed: boolean): string {
         </div>\`;
     } else {
       html += \`
-        <a href="\${siteUrl}/pages/anime.php?id=\${entry.id}"
+        <a href="\${siteUrl}/anime?id=\${entry.id}"
           style="display:flex;align-items:center;gap:10px;padding:9px 14px;color:var(--text-main);text-decoration:none;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .12s;"
           onmouseover="this.style.background='rgba(255,255,255,0.06)'"
           onmouseout="this.style.background=''"
@@ -139,7 +139,7 @@ export function animeTailScript(animeDubConfirmed: boolean): string {
     html += \`<div style="padding:5px 14px 3px;font-size:0.68rem;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.07em;border-top:1px solid var(--border);margin-top:2px;">Also in this series</div>\`;
     specialEntries.forEach(e => {
       html += \`
-        <a href="\${siteUrl}/pages/anime.php?id=\${e.id}"
+        <a href="\${siteUrl}/anime?id=\${e.id}"
           style="display:flex;align-items:center;gap:10px;padding:8px 14px;color:var(--text-main);text-decoration:none;font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .12s;"
           onmouseover="this.style.background='rgba(255,255,255,0.06)'"
           onmouseout="this.style.background=''"
@@ -249,7 +249,7 @@ function buildEpCard(ep, animeId, cover, thumbMap) {
   const thumb = (thumbMap && thumbMap[parseInt(epNum)]) || cover;
 
   const div = document.createElement('a');
-  div.href      = (window.__siteUrl || '') + '/pages/watch.php?anime=' + animeId + '&ep=' + epNum;
+  div.href      = (window.__siteUrl || '') + '/watch?anime=' + animeId + '&ep=' + epNum;
   div.className = 'ep-card' + (hasVid ? ' has-video-ep' : '');
   div.dataset.title    = epTitle;
   div.dataset.meta     = meta;
@@ -367,7 +367,7 @@ async function lazyLoadCharacters() {
       const div = document.createElement('div');
       div.className = 'anime-card';
       div.style.cursor = 'pointer';
-      div.onclick = () => { window.location.href = window.__siteUrl + '/pages/character.php?id=' + charId; };
+      div.onclick = () => { window.location.href = window.__siteUrl + '/character?id=' + charId; };
       div.innerHTML = \`
         <div class="anime-card-poster" style="aspect-ratio:1/1.2;position:relative;">
           \${img ? \`<img src="\${img}" alt="\${char.name || ''}" loading="lazy">\` : ''}
@@ -409,7 +409,7 @@ async function lazyLoadRelated() {
       const div = document.createElement('div');
       div.className = 'anime-card';
       div.style.cursor = 'pointer';
-      div.onclick = () => { window.location.href = window.__siteUrl + '/pages/anime.php?id=' + aid; };
+      div.onclick = () => { window.location.href = window.__siteUrl + '/anime?id=' + aid; };
       div.innerHTML = \`
         <div class="anime-card-poster">
           \${aimg ? \`<img src="\${aimg}" alt="\${atitle.replace(/"/g,'&quot;')}" loading="lazy">\` : ''}

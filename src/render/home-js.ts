@@ -161,7 +161,7 @@ export function continueWatchingScript(siteUrl: string): string {
       if (!nextItem || !grid) return;
 
       // Build replacement card HTML
-      var watchUrl  = __cwSiteUrl + '/pages/watch.php?anime=' + nextItem.anime_id + '&ep=' + nextItem.episode_num;
+      var watchUrl  = __cwSiteUrl + '/watch?anime=' + nextItem.anime_id + '&ep=' + nextItem.episode_num;
       var epNum     = nextItem.episode_num;
       var epTitle   = nextItem.ep_title  || ('Episode ' + epNum);
       var animeName = nextItem.anime_title || ('Anime #' + nextItem.anime_id);

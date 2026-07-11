@@ -109,7 +109,7 @@ ${og.type === 'video.episode' ? `
           <button onclick="markAllRead()" class="btn btn-ghost btn-sm" style="font-size:0.75rem;padding:3px 10px;">${icon('check', 'icon-small')} All read</button>
         </div>
         <div class="notif-list" id="notif-list"><div class="notif-empty"><span>${icon('bell', 'icon-large')}</span>Loading...</div></div>
-        <div class="notif-footer"><a href="${o.siteUrl}/pages/notifications.php">${icon('arrow-right', 'icon-small')} View all notifications →</a></div>
+        <div class="notif-footer"><a href="${o.siteUrl}/notifications">${icon('arrow-right', 'icon-small')} View all notifications →</a></div>
       </div>
     </div>
     <div class="dropdown">
@@ -117,12 +117,12 @@ ${og.type === 'video.episode' ? `
         ${cu.avatar_url ? `<img src="${h(cu.avatar_url)}" alt="avatar">` : icon('user', 'icon-medium')}
       </div>
       <div class="dropdown-menu">
-        <a href="${o.siteUrl}/pages/user.php?u=${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
-        <a href="${o.siteUrl}/pages/profile.php">${icon('edit', 'icon-small')} Edit Profile</a>
-        <a href="${o.siteUrl}/pages/mylist.php">${icon('list', 'icon-small')} My List</a>
-        <a href="${o.siteUrl}/pages/announcements.php">${icon('megaphone', 'icon-small')} Announcements</a>
-        <a href="${o.siteUrl}/pages/favorites.php">${icon('heart', 'icon-small')} Favorites</a>
-        <a href="${o.siteUrl}/pages/importexport.php">${icon('box', 'icon-small')} Import / Export</a>
+        <a href="${o.siteUrl}/u/${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
+        <a href="${o.siteUrl}/profile">${icon('edit', 'icon-small')} Edit Profile</a>
+        <a href="${o.siteUrl}/mylist">${icon('list', 'icon-small')} My List</a>
+        <a href="${o.siteUrl}/announcements">${icon('megaphone', 'icon-small')} Announcements</a>
+        <a href="${o.siteUrl}/favorites">${icon('heart', 'icon-small')} Favorites</a>
+        <a href="${o.siteUrl}/importexport">${icon('box', 'icon-small')} Import / Export</a>
         ${(cu.role === 'admin' || cu.role === 'owner') ? `<div class="dropdown-divider"></div><a href="${o.siteUrl}/admin/index.php">${icon('shield', 'icon-small')} Admin Panel</a>` : ''}
         <div class="dropdown-divider"></div>
         <a href="${o.siteUrl}/logout">${icon('logout', 'icon-small')} Logout</a>
@@ -182,10 +182,10 @@ ${bannerBlock}
   <a href="${o.siteUrl}/" class="nav-logo">Ani<span>Vault</span></a>
   <ul class="nav-links">
     <li><a href="${o.siteUrl}/" class="${active('index')}">${icon('home', 'icon-small')} Home</a></li>
-    <li><a href="${o.siteUrl}/pages/browse.php" class="${active('browse')}">${icon('search', 'icon-small')} Browse</a></li>
-    <li><a href="${o.siteUrl}/pages/seasonal.php" class="${active('seasonal')}">${icon('fire', 'icon-small')} Seasonal</a></li>
-    <li><a href="${o.siteUrl}/pages/top.php" class="${active('top')}">${icon('trophy', 'icon-small')} Top</a></li>
-    <li><a href="${o.siteUrl}/pages/schedule.php" class="${active('schedule')}">${icon('calendar', 'icon-small')} Schedule</a></li>
+    <li><a href="${o.siteUrl}/browse" class="${active('browse')}">${icon('search', 'icon-small')} Browse</a></li>
+    <li><a href="${o.siteUrl}/seasonal" class="${active('seasonal')}">${icon('fire', 'icon-small')} Seasonal</a></li>
+    <li><a href="${o.siteUrl}/top" class="${active('top')}">${icon('trophy', 'icon-small')} Top</a></li>
+    <li><a href="${o.siteUrl}/schedule" class="${active('schedule')}">${icon('calendar', 'icon-small')} Schedule</a></li>
 
   </ul>
   <form id="nav-search-form" class="nav-search">
@@ -207,17 +207,17 @@ window.__siteUrl  = '${o.siteUrl}';
     <button type="submit">${icon('search', 'icon-small')}</button>
   </form>
   <a href="${o.siteUrl}/" class="${active('index')}">${icon('home', 'icon-small')} Home</a>
-  <a href="${o.siteUrl}/pages/browse.php" class="${active('browse')}">${icon('search', 'icon-small')} Browse</a>
-  <a href="${o.siteUrl}/pages/seasonal.php" class="${active('seasonal')}">${icon('fire', 'icon-small')} Seasonal</a>
-  <a href="${o.siteUrl}/pages/top.php" class="${active('top')}">${icon('trophy', 'icon-small')} Top Anime</a>
-  <a href="${o.siteUrl}/pages/schedule.php" class="${active('schedule')}">${icon('calendar', 'icon-small')} Schedule</a>
+  <a href="${o.siteUrl}/browse" class="${active('browse')}">${icon('search', 'icon-small')} Browse</a>
+  <a href="${o.siteUrl}/seasonal" class="${active('seasonal')}">${icon('fire', 'icon-small')} Seasonal</a>
+  <a href="${o.siteUrl}/top" class="${active('top')}">${icon('trophy', 'icon-small')} Top Anime</a>
+  <a href="${o.siteUrl}/schedule" class="${active('schedule')}">${icon('calendar', 'icon-small')} Schedule</a>
   ${cu ? `
-  <a href="${o.siteUrl}/pages/mylist.php" class="${active('mylist')}">${icon('list', 'icon-small')} My List</a>
+  <a href="${o.siteUrl}/mylist" class="${active('mylist')}">${icon('list', 'icon-small')} My List</a>
   <div class="mobile-menu-divider"></div>
-  <a href="${o.siteUrl}/pages/user.php?u=${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
-  <a href="${o.siteUrl}/pages/profile.php">${icon('edit', 'icon-small')} Edit Profile</a>
-  <a href="${o.siteUrl}/pages/favorites.php">${icon('heart', 'icon-small')} Favorites</a>
-  <a href="${o.siteUrl}/pages/importexport.php">${icon('box', 'icon-small')} Import / Export</a>
+  <a href="${o.siteUrl}/u/${h(cu.username)}">${icon('user', 'icon-small')} My Profile</a>
+  <a href="${o.siteUrl}/profile">${icon('edit', 'icon-small')} Edit Profile</a>
+  <a href="${o.siteUrl}/favorites">${icon('heart', 'icon-small')} Favorites</a>
+  <a href="${o.siteUrl}/importexport">${icon('box', 'icon-small')} Import / Export</a>
   ${(cu.role === 'admin' || cu.role === 'owner') ? `<div class="mobile-menu-divider"></div><a href="${o.siteUrl}/admin/index.php">${icon('shield', 'icon-small')} Admin Panel</a>` : ''}
   <div class="mobile-menu-divider"></div>
   <a href="${o.siteUrl}/logout">${icon('logout', 'icon-small')} Logout</a>` : `
@@ -356,30 +356,30 @@ export function renderFooter(o: { siteUrl: string; currentUser: CurrentUser | nu
       <h4 class="footer-heading">Navigate</h4>
       <ul class="footer-links">
         <li><a href="${o.siteUrl}/">${icon('home', 'icon-inline')} Home</a></li>
-        <li><a href="${o.siteUrl}/pages/browse.php">${icon('search', 'icon-inline')} Browse</a></li>
-        <li><a href="${o.siteUrl}/pages/seasonal.php">${icon('fire', 'icon-inline')} Seasonal</a></li>
-        <li><a href="${o.siteUrl}/pages/top.php">${icon('trophy', 'icon-inline')} Top Anime</a></li>
-        <li><a href="${o.siteUrl}/pages/schedule.php">${icon('calendar', 'icon-inline')} Schedule</a></li>
+        <li><a href="${o.siteUrl}/browse">${icon('search', 'icon-inline')} Browse</a></li>
+        <li><a href="${o.siteUrl}/seasonal">${icon('fire', 'icon-inline')} Seasonal</a></li>
+        <li><a href="${o.siteUrl}/top">${icon('trophy', 'icon-inline')} Top Anime</a></li>
+        <li><a href="${o.siteUrl}/schedule">${icon('calendar', 'icon-inline')} Schedule</a></li>
       </ul>
     </div>
     <div class="footer-col">
       <h4 class="footer-heading">Your Vault</h4>
       <ul class="footer-links">
         ${cu ? `
-        <li><a href="${o.siteUrl}/pages/mylist.php">${icon('list', 'icon-inline')} My List</a></li>
-        <li><a href="${o.siteUrl}/pages/favorites.php">${icon('heart', 'icon-inline')} Favorites</a></li>
-        <li><a href="${o.siteUrl}/pages/profile.php">${icon('edit', 'icon-inline')} Edit Profile</a></li>
-        <li><a href="${o.siteUrl}/pages/importexport.php">${icon('box', 'icon-inline')} Import / Export</a></li>` : `
+        <li><a href="${o.siteUrl}/mylist">${icon('list', 'icon-inline')} My List</a></li>
+        <li><a href="${o.siteUrl}/favorites">${icon('heart', 'icon-inline')} Favorites</a></li>
+        <li><a href="${o.siteUrl}/profile">${icon('edit', 'icon-inline')} Edit Profile</a></li>
+        <li><a href="${o.siteUrl}/importexport">${icon('box', 'icon-inline')} Import / Export</a></li>` : `
         <li><a href="#" onclick="requireLogin('login');return false;">${icon('login', 'icon-inline')} Login</a></li>
-        <li><a href="${o.siteUrl}/pages/register.php">${icon('plus', 'icon-inline')} Sign Up</a></li>`}
+        <li><a href="${o.siteUrl}/register">${icon('plus', 'icon-inline')} Sign Up</a></li>`}
       </ul>
     </div>
     <div class="footer-col">
       <h4 class="footer-heading">Info</h4>
       <ul class="footer-links">
-        <li><a href="${o.siteUrl}/pages/announcements.php">${icon('megaphone', 'icon-inline')} Announcements</a></li>
-        <li><a href="${o.siteUrl}/pages/terms.php">${icon('terms', 'icon-inline')} Terms of Use</a></li>
-        <li><a href="${o.siteUrl}/pages/privacy.php">${icon('shield', 'icon-inline')} Privacy Policy</a></li>
+        <li><a href="${o.siteUrl}/announcements">${icon('megaphone', 'icon-inline')} Announcements</a></li>
+        <li><a href="${o.siteUrl}/terms">${icon('terms', 'icon-inline')} Terms of Use</a></li>
+        <li><a href="${o.siteUrl}/privacy">${icon('shield', 'icon-inline')} Privacy Policy</a></li>
         <li><a href="mailto:abdullahalmahim585@gmail.com">${icon('mail', 'icon-inline')} Contact</a></li>
       </ul>
     </div>
