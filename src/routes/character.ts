@@ -34,7 +34,7 @@ characterRoutes.get('/character', async (c) => {
   ]);
 
   const char = charData?.data;
-  if (!char) {
+  if (!char || Array.isArray(char) || !char.mal_id) {
     return c.html(`<script>window.location.href=${JSON.stringify(siteUrl + '/')};</script>`);
   }
 
