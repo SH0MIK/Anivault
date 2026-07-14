@@ -83,44 +83,24 @@ export class MalAPI {
       if (cached && cached.data !== undefined) return cached;
     }
 
-    // Jikan rate-limit: 3 req/sec. Retry with backoff on 429 (and on 5xx,
-    // which Jikan also throws under load) before giving up.
-    let lastStatus: number | null = null;
-    let lastBody: string | null = null;
-    let lastFetchError: string | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const res = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'AnimeApp/1.0' } });
-        lastStatus = res.status;
-        if (res.status === 429 || res.status >= 500) {
-          lastBody = await res.text().catch(() => null);
-          console.error(`jikanGet retry: ${url} -> ${res.status} attempt ${attempt}`, lastBody?.slice(0, 300));
-          await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
-          continue;
-        }
-        if (!res.ok) {
-          lastBody = await res.text().catch(() => null);
-          console.error(`jikanGet failed: ${url} -> ${res.status}`, lastBody?.slice(0, 300));
-          return { data: [], _debug: { status: res.status, body: lastBody?.slice(0, 500) ?? null } };
-        }
-        const decoded: any = await res.json().catch(() => null);
-        if (!decoded || decoded.data === undefined) {
-          console.error(`jikanGet bad json: ${url} -> status ${res.status}`);
-          return { data: [], _debug: { status: res.status, body: 'non-JSON or missing data field' } };
-        }
-
-        if (this.kv && this.cacheEnabled()) {
-          const cacheKey = 'jikan_' + (await sha1(url));
-          await this.kv.put(cacheKey, JSON.stringify(decoded), { expirationTtl: this.cacheTtl() });
-        }
-        return decoded;
-      } catch (err: any) {
-        lastFetchError = String(err?.message ?? err);
-        console.error(`jikanGet threw: ${url}`, lastFetchError);
-        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+    // Jikan rate-limit: 3 req/sec. Retry once after a short wait on 429.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const res = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'AnimeApp/1.0' } });
+      if (res.status === 429) {
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
       }
+      if (!res.ok) return { data: [] };
+      const decoded: any = await res.json().catch(() => null);
+      if (!decoded || decoded.data === undefined) return { data: [] };
+
+      if (this.kv && this.cacheEnabled()) {
+        const cacheKey = 'jikan_' + (await sha1(url));
+        await this.kv.put(cacheKey, JSON.stringify(decoded), { expirationTtl: this.cacheTtl() });
+      }
+      return decoded;
     }
-    return { data: [], _debug: { status: lastStatus, body: lastBody?.slice(0, 500) ?? null, fetchError: lastFetchError } };
+    return { data: [] };
   }
 
   private async getLocalAnimeImage(animeId: number): Promise<string> {
