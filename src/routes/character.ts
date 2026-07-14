@@ -27,25 +27,14 @@ characterRoutes.get('/character', async (c) => {
   const charId = parseInt(c.req.query('id') ?? '0', 10) || 0;
   if (!charId) return c.redirect(siteUrl + '/');
 
-  // NOTE: these must run sequentially, not via Promise.all. Jikan rate-limits
-  // bursts hard, and firing all 3 requests at once from the same Worker was
-  // triggering 429s that jikanGet() silently swallowed into { data: [] },
-  // which made the page think the character didn't exist and bounce home.
-  const charData = await mal.getCharacter(charId);
-  const charAnimeData = await mal.getCharacterAnime(charId);
-  const charVoicesData = await mal.getCharacterVoices(charId);
+  const [charData, charAnimeData, charVoicesData] = await Promise.all([
+    mal.getCharacter(charId),
+    mal.getCharacterAnime(charId),
+    mal.getCharacterVoices(charId),
+  ]);
 
   const char = charData?.data;
-  if (!char || Array.isArray(char) || !char.mal_id) {
-    // TEMP DEBUG: append &debug=1 to the URL to see why the fetch actually
-    // failed instead of silently bouncing to home. Remove this block once
-    // the underlying Jikan issue is confirmed fixed.
-    if (c.req.query('debug') === '1') {
-      return c.html(`<pre style="white-space:pre-wrap;padding:2rem;font-family:monospace;">
-charId: ${charId}
-charData: ${JSON.stringify(charData, null, 2)}
-</pre>`);
-    }
+  if (!char) {
     return c.html(`<script>window.location.href=${JSON.stringify(siteUrl + '/')};</script>`);
   }
 
