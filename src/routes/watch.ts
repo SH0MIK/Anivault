@@ -23,6 +23,7 @@ import { PLAYER_CSS } from '../render/player-css';
 import { playerScript } from '../render/player-script';
 import { playerBody } from '../render/player-body';
 import { getBannerData } from '../lib/settings';
+import { findEpisodeThumbnails, episodeThumbCacheKey } from '../lib/episode-thumb';
 
 export const watchRoutes = new Hono<{ Bindings: Env }>();
 
@@ -79,28 +80,30 @@ async function getAnilistIdFromMal(db: Db, malId: number): Promise<number | null
   return null;
 }
 
-/** Ports the AniList streamingEpisodes lookup used for the watch page's
- * og:image (prefers an episode-specific thumbnail over the generic cover,
- * skipping paywalled/geo-restricted sites that wouldn't render for OG scrapers). */
-async function getEpisodeOgImage(animeId: number, epNum: number, fallback: string): Promise<string> {
-  const skipSites = ['netflix', 'amazon', 'prime', 'disney', 'hulu', 'apple'];
+/** Episode-specific thumbnail for the watch page's og:image, so link previews
+ * (Discord, Twitter, etc.) show the actual episode instead of the anime's
+ * generic cover. Used to only check AniList's streamingEpisodes with a
+ * fragile regex and no fallback -- that's why it so often lost to the
+ * Continue Watching thumbnail, which runs the same multi-source chain
+ * (Kitsu -> TMDB -> AniList -> Jikan -> AniSearch, see lib/episode-thumb.ts)
+ * client-side in home-js.ts. This now runs that same chain server-side, with
+ * a KV cache shared with the admin thumb-search tool so repeat views/shares
+ * of the same episode don't re-hit every API. */
+async function getEpisodeOgImage(env: Env, animeTitle: string, malId: number, epNum: number, fallback: string): Promise<string> {
+  const cacheKey = episodeThumbCacheKey(malId, epNum);
   try {
-    const res = await fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        query: 'query ($malId: Int) { Media(idMal: $malId, type: ANIME) { streamingEpisodes { title thumbnail site } } }',
-        variables: { malId: animeId },
-      }),
-    });
-    const data: any = await res.json();
-    const eps: any[] = data?.data?.Media?.streamingEpisodes ?? [];
-    const epRegex = new RegExp(`Episode\\s+${epNum}`, 'i');
-    for (const ep of eps) {
-      if (epRegex.test(ep.title ?? '')) {
-        const site = (ep.site ?? '').toLowerCase();
-        if (!skipSites.some((s) => site.includes(s)) && ep.thumbnail) return ep.thumbnail;
-      }
+    const cached = await env.API_CACHE.get(cacheKey, 'json') as { thumb?: string | null } | null;
+    if (cached?.thumb) return cached.thumb;
+  } catch { /* cache miss/error -- fall through to a fresh lookup */ }
+
+  try {
+    const { thumbs } = await findEpisodeThumbnails(env, animeTitle, epNum, malId, false);
+    const thumb = thumbs[0] ?? null;
+    if (thumb) {
+      try {
+        await env.API_CACHE.put(cacheKey, JSON.stringify({ success: true, thumb }), { expirationTtl: 3600 });
+      } catch { /* caching is best-effort */ }
+      return thumb;
     }
   } catch { /* fall through to fallback image */ }
   return fallback;
@@ -211,7 +214,7 @@ watchRoutes.get('/watch', async (c) => {
     ? { id: currentUser.id, username: currentUser.username, avatar_url: currentUser.avatar_url, role: currentUser.role }
     : null;
 
-  const ogImage = await getEpisodeOgImage(animeId, epNum, image);
+  const ogImage = await getEpisodeOgImage(c.env, title, animeId, epNum, image);
 
   const __banner = await getBannerData(db);
   let html = renderHeader({
