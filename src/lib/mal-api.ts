@@ -83,11 +83,12 @@ export class MalAPI {
       if (cached && cached.data !== undefined) return cached;
     }
 
-    // Jikan rate-limit: 3 req/sec. Retry once after a short wait on 429.
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // Jikan rate-limit: 3 req/sec. Retry with backoff on 429 (and on 5xx,
+    // which Jikan also throws under load) before giving up.
+    for (let attempt = 0; attempt < 3; attempt++) {
       const res = await fetch(url, { headers: { Accept: 'application/json', 'User-Agent': 'AnimeApp/1.0' } });
-      if (res.status === 429) {
-        await new Promise((r) => setTimeout(r, 1000));
+      if (res.status === 429 || res.status >= 500) {
+        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
         continue;
       }
       if (!res.ok) return { data: [] };
