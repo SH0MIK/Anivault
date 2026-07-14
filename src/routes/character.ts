@@ -37,6 +37,15 @@ characterRoutes.get('/character', async (c) => {
 
   const char = charData?.data;
   if (!char || Array.isArray(char) || !char.mal_id) {
+    // TEMP DEBUG: append &debug=1 to the URL to see why the fetch actually
+    // failed instead of silently bouncing to home. Remove this block once
+    // the underlying Jikan issue is confirmed fixed.
+    if (c.req.query('debug') === '1') {
+      return c.html(`<pre style="white-space:pre-wrap;padding:2rem;font-family:monospace;">
+charId: ${charId}
+charData: ${JSON.stringify(charData, null, 2)}
+</pre>`);
+    }
     return c.html(`<script>window.location.href=${JSON.stringify(siteUrl + '/')};</script>`);
   }
 
