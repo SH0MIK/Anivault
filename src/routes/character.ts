@@ -54,10 +54,19 @@ characterRoutes.get('/character', async (c) => {
     ? { id: currentUser.id, username: currentUser.username, avatar_url: currentUser.avatar_url, role: currentUser.role }
     : null;
 
+  const charOgDescription = about
+    ? about.replace(/\s+/g, ' ').substring(0, 200)
+    : `Character info, appearances & voice actors for ${name} on AniVault.`;
+
   const __banner = await getBannerData(db);
   let html = renderHeader({
     ...__banner,    siteUrl, siteName: c.env.SITE_NAME, pageTitle: name, currentPage: 'character', currentUser: layoutUser, unreadCount,
     requestUrl: c.req.url,
+    ogData: {
+      title: name, description: charOgDescription, image: imageLarge || `${siteUrl}/assets/img/site-img/icon.png`,
+      image_width: imageLarge ? 400 : 512, image_height: imageLarge ? 600 : 512,
+      url: `${siteUrl}/character?id=${charId}`, type: 'profile',
+    },
   });
 
   html += `

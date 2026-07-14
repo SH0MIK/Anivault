@@ -72,8 +72,20 @@ userRoutes.get('/u/:username', async (c) => {
   const modalUserIds = [...followers.map((f) => f.id), ...following.map((f) => f.id)];
   const modalUserBadges = await Badge.getForUsers(db, modalUserIds);
 
+  const profileOgDescription = profileUser.bio
+    ? profileUser.bio.substring(0, 200)
+    : `${stats.total ?? 0} anime tracked · ${followerCount} followers · ${followingCount} following on AniVault.`;
+
   const __banner = await getBannerData(db);
-  let html = renderHeader({ ...__banner, siteUrl, siteName: c.env.SITE_NAME, pageTitle: `${profileUser.username}'s Profile`, currentPage: 'user', currentUser: layoutUser, unreadCount, requestUrl: c.req.url });
+  let html = renderHeader({
+    ...__banner, siteUrl, siteName: c.env.SITE_NAME, pageTitle: `${profileUser.username}'s Profile`, currentPage: 'user', currentUser: layoutUser, unreadCount, requestUrl: c.req.url,
+    ogData: {
+      title: `${profileUser.username}'s Profile`, description: profileOgDescription,
+      image: profileUser.avatar_url || `${siteUrl}/assets/img/site-img/icon.png`,
+      image_width: profileUser.avatar_url ? 400 : 512, image_height: profileUser.avatar_url ? 400 : 512,
+      url: `${siteUrl}/u/${profileUser.username}`, type: 'profile',
+    },
+  });
   const isProfileOwner = profileUser.role === 'owner' || auth.isOwnerUserId(profileId);
   const joinedDate = profileUser.created_at ? new Date(profileUser.created_at.replace(' ', 'T') + 'Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' }) : '';
 
