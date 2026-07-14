@@ -40,6 +40,17 @@ function authGoogleRedirect(e) {
     .catch(() => { window.location.href = url; });
 }
 
+/** Redirect to Discord OAuth, saving the intended post-auth destination */
+function authDiscordRedirect(e) {
+  e.preventDefault();
+  const base     = window.__siteUrl || '';
+  const redirect = window.__authRedirect || window.location.href;
+  fetch(base + '/api/auth_discord_url.php?redirect=' + encodeURIComponent(redirect))
+    .then(r => r.json())
+    .then(d => { if (d.url) window.location.href = d.url; })
+    .catch(() => {});
+}
+
 /** AJAX login via the auth popup */
 async function authSubmitLogin() {
   const username = document.getElementById('auth-login-username').value.trim();
