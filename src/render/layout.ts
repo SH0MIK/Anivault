@@ -75,7 +75,7 @@ ${og.type === 'video.episode' ? `
 <meta name="twitter:site" content="@AniVault">
 <meta name="theme-color" content="#e8453c">`
     : `
-<meta property="og:title" content="${h(o.siteName)}|Your Anime Univers!">
+<meta property="og:title" content="${h(o.siteName)} | One & only adfree anime streaming platform!">
 <meta property="og:description" content="Watch all anime subbed & dubbed adfree on AniVault">
 <meta property="og:site_name" content="${h(o.siteName)}.co">
 <meta property="og:type" content="website">
@@ -84,7 +84,7 @@ ${og.type === 'video.episode' ? `
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="${h(o.siteName)}|Your Anime Universe!">
+<meta name="twitter:title" content="${h(o.siteName)} | One & only Adfree anime streaming platform!">
 <meta name="twitter:description" content="Watch all anime subbed & dubbed adfree on AniVault">
 <meta name="twitter:image" content="${o.siteUrl}/assets/img/site-img/embed.png">
 <meta name="theme-color" content="#e8453c">`;
