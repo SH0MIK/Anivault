@@ -97,31 +97,6 @@ function updateActiveServerButton(serverName, audio) {
     if (btn) btn.classList.add('active');
 }
 
-(function initAdGuard(){
-    const _orig = window.open.bind(window);
-    window.open = function(url, name, specs){
-        if (!url) return null;
-        try {
-            const h = new URL(url, location.href).hostname;
-            if (h === location.hostname) return _orig(url, name, specs);
-        } catch(e){}
-        const dummy = { closed:false, close(){this.closed=true;}, focus(){}, location:{href:'about:blank'} };
-        return dummy;
-    };
-})();
-
-function attachRyuShield(pw) {
-    const sh = document.getElementById('mp-click-shield');
-    if (sh) sh.remove();
-    if (window.__attachRyuShield) window.__attachRyuShield(pw);
-}
-function removeRyuShield() {
-    const sh = document.getElementById('mp-click-shield');
-    if (sh) { sh.style.transition='opacity .15s'; sh.style.opacity='0'; setTimeout(()=>sh.remove(),150); }
-}
-
-let _uShieldTimer = null;
-
 // ── AnimeHeaven (MP4 via fetch, plays in the custom player) ──────────────
 function switchToAnimeHeaven(audio) {
     const pw = document.getElementById('watch-player-wrap');
@@ -136,9 +111,6 @@ function switchToAnimeHeaven(audio) {
     if (sp && sp.parentNode) sp.parentNode.removeChild(sp);
 
     pw.style.opacity = '0';
-    removeRyuShield();
-    const oldShield = document.getElementById('universal-click-shield');
-    if (oldShield) { clearTimeout(_uShieldTimer); oldShield.remove(); }
     if (pw._senshiHls) { pw._senshiHls.destroy(); pw._senshiHls = null; }
 
     // Restore shell to player mode
@@ -319,9 +291,6 @@ function switchToAnikoto(providerName, audio) {
     if (sp && sp.parentNode) sp.parentNode.removeChild(sp);
 
     pw.style.opacity = '0';
-    removeRyuShield();
-    const oldShield = document.getElementById('universal-click-shield');
-    if (oldShield) { clearTimeout(_uShieldTimer); oldShield.remove(); }
 
     pw.style.aspectRatio  = 'unset';
     pw.style.overflow     = 'visible';

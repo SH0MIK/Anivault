@@ -160,6 +160,7 @@ function syncVol(){
 }
 
 /* ── Progress ────────────────────────────────────────────── */
+let _lastReportedSec=-1;
 function updateProg(){
   if(!vid.duration||isDrag)return;
   const pct=(vid.currentTime/vid.duration)*100;
@@ -169,6 +170,8 @@ function updateProg(){
   if(vid.buffered.length)
     progBuf.style.width=(vid.buffered.end(vid.buffered.length-1)/vid.duration*100)+'%';
   updateInfoPanel();
+  const sec=Math.floor(vid.currentTime||0);
+  if(sec!==_lastReportedSec){_lastReportedSec=sec;reportPlayback('timeupdate');}
 }
 function seekPct(x){
   const rect=progTrack.getBoundingClientRect();
@@ -415,12 +418,15 @@ function seekRel(s){
 }
 
 /* ── Video events ────────────────────────────────────────── */
+function reportPlayback(type){
+  try{window.postMessage({type:type,currentTime:vid.currentTime||0},'*');}catch(e){}
+}
 vid.addEventListener('waiting',()=>spin(true));
 vid.addEventListener('canplay',()=>spin(false));
-vid.addEventListener('play',syncPlay);
-vid.addEventListener('playing',()=>{spin(false);syncPlay();showCtrl();hideError()});
-vid.addEventListener('pause',()=>{syncPlay();showCtrl()});
-vid.addEventListener('ended',syncPlay);
+vid.addEventListener('play',()=>{syncPlay();reportPlayback('play');});
+vid.addEventListener('playing',()=>{spin(false);syncPlay();showCtrl();hideError();reportPlayback('playing');});
+vid.addEventListener('pause',()=>{syncPlay();showCtrl();reportPlayback('pause');});
+vid.addEventListener('ended',()=>{syncPlay();reportPlayback('ended');});
 vid.addEventListener('timeupdate',updateProg);
 vid.addEventListener('volumechange',syncVol);
 vid.addEventListener('durationchange',updateProg);

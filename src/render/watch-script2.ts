@@ -38,7 +38,6 @@ export function watchScript2(animeId: number, epNum: number, siteUrl: string, ep
     setInterval(function(){save();updateUI();},5000);
   });
 
-  document.addEventListener('click',function(e){if(e.target.closest('#mp-click-shield'))setTimeout(wallPlay,800);});
   var area=document.getElementById('watch-player-wrap');if(area)area.addEventListener('click',function(){setTimeout(wallPlay,800);});
 
   window.addEventListener('message',function(e){var d=e.data;if(!d||typeof d!=='object')return;var ev=d.type||d.event||'';if(ev==='play'||ev==='playing')wallPlay();if(ev==='pause'||ev==='paused')wallPause();if(ev==='ended'||ev==='complete'){wallPause();wallBase=EP_DUR;save();}var ct=d.currentTime||(d.detail&&d.detail.currentTime);if(ct&&Math.abs(ct-wallNow())>10){wallBase=Math.floor(ct);wallStart=wallRunning?Date.now():null;}});
