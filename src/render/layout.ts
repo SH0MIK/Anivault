@@ -75,7 +75,7 @@ ${og.type === 'video.episode' ? `
 <meta name="twitter:site" content="@AniVault">
 <meta name="theme-color" content="#e8453c">`
     : `
-<meta property="og:title" content="${h(o.siteName)} | One & only adfree anime streaming platform!">
+<meta property="og:title" content="${h(o.siteName)} | One & only Adfree anime streaming platform!">
 <meta property="og:description" content="Watch all anime subbed & dubbed adfree on AniVault">
 <meta property="og:site_name" content="${h(o.siteName)}.co">
 <meta property="og:type" content="website">
