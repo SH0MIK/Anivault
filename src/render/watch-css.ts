@@ -710,6 +710,33 @@ export const WATCH_CSS = `/* ═════════════════
   background:linear-gradient(90deg, rgba(232,69,60,.06), transparent);
   pointer-events:none;
 }
+.ep-item.watched:not(.active) {
+  background:rgba(0,0,0,.28);
+}
+.ep-item.watched:not(.active):hover {
+  background:rgba(0,0,0,.36);
+}
+.ep-item.watched:not(.active) .ep-thumb-box {
+  opacity:.55;
+}
+.ep-item.watched:not(.active) .ep-num-txt,
+.ep-item.watched:not(.active) .ep-title-txt {
+  color:var(--text-muted);
+  opacity:.65;
+}
+.ep-item.watched .ep-thumb-box::after {
+  content:'✓';
+  position:absolute;
+  top:2px; right:2px;
+  width:14px; height:14px;
+  border-radius:50%;
+  background:rgba(0,0,0,.65);
+  color:#8f8f8f;
+  font-size:.55rem;
+  font-weight:700;
+  display:flex; align-items:center; justify-content:center;
+  z-index:1;
+}
 .ep-thumb-box {
   width:72px; height:42px;
   border-radius:6px;

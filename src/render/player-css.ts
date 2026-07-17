@@ -170,6 +170,8 @@ export const PLAYER_CSS = `<style id="sp-skin">
 }
 .sp-ep-chip:hover{border-color:var(--sp-accent, #e8453c);color:#fff;background:rgba(232,69,60,.08)}
 .sp-ep-chip.current{border-color:var(--sp-accent, #e8453c);background:rgba(232,69,60,.15);color:var(--sp-accent, #e8453c)}
+.sp-ep-chip.watched:not(.current){background:rgba(0,0,0,.4);border-color:rgba(255,255,255,.05);color:var(--sp-text-muted, rgba(232,234,240,0.35))}
+.sp-ep-chip.watched:not(.current):hover{background:rgba(0,0,0,.5)}
 .sp-ep-chip.sp-ep-extra{display:none}
 .sp-ep-grid.sp-ep-expanded .sp-ep-chip.sp-ep-extra{display:block}
 

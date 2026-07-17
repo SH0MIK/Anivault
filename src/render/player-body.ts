@@ -13,16 +13,18 @@ export interface PlayerBodyParams {
   epNums: number[];
   curEp: number;
   totalEpsN: number;
+  episodesWatched?: number;
 }
 
-function renderEpGrid(epNums: number[], curEp: number, watchBase: string, totalEpsN: number): string {
+function renderEpGrid(epNums: number[], curEp: number, watchBase: string, totalEpsN: number, episodesWatched: number): string {
   if (epNums.length === 0) return '';
   const visibleCount = 24;
   const hasMore = epNums.length > visibleCount;
   let out = `<div class="sp-ep-divider"><span>All Episodes${totalEpsN > 0 ? ' · ' + totalEpsN + ' eps' : ''}</span></div>`;
   out += '<div class="sp-ep-grid" id="sp-ep-grid">';
   epNums.forEach((n, i) => {
-    const cls = 'sp-ep-chip' + (n === curEp ? ' current' : '') + (i >= visibleCount ? ' sp-ep-extra' : '');
+    const isWatched = episodesWatched > 0 && n <= episodesWatched;
+    const cls = 'sp-ep-chip' + (n === curEp ? ' current' : '') + (isWatched ? ' watched' : '') + (i >= visibleCount ? ' sp-ep-extra' : '');
     out += `<a class="${cls}" href="${h(watchBase + n)}">${n}</a>`;
   });
   out += '</div>';
@@ -34,8 +36,8 @@ function renderEpGrid(epNums: number[], curEp: number, watchBase: string, totalE
 }
 
 export function playerBody(p: PlayerBodyParams): string {
-  const { title, epNum, currentEpTitle, prevEpNum, nextEpNum, watchBase, epNums, curEp, totalEpsN } = p;
-  const epGridHtml = renderEpGrid(epNums, curEp, watchBase, totalEpsN);
+  const { title, epNum, currentEpTitle, prevEpNum, nextEpNum, watchBase, epNums, curEp, totalEpsN, episodesWatched } = p;
+  const epGridHtml = renderEpGrid(epNums, curEp, watchBase, totalEpsN, episodesWatched ?? 0);
   return `<div id="senshi-player-root">
 
   <!-- Top bar -->

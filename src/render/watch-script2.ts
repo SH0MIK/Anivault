@@ -1,4 +1,4 @@
-export function watchScript2(animeId: number, epNum: number, siteUrl: string, epDurationSec: number): string {
+export function watchScript2(animeId: number, epNum: number, siteUrl: string, epDurationSec: number, totalEps: number = 0): string {
   return `<script>
 (function(){
   if(!window.__loggedIn)return;
@@ -6,6 +6,7 @@ export function watchScript2(animeId: number, epNum: number, siteUrl: string, ep
   var EP_NUM=${epNum};
   var SITE_URL=${JSON.stringify(siteUrl)};
   var EP_DUR=${epDurationSec};
+  var TOTAL_EPS=${totalEps};
   var curPos=0,lastSaved=-1;
 
   function livePos(){
@@ -30,7 +31,7 @@ export function watchScript2(animeId: number, epNum: number, siteUrl: string, ep
     if(pos<5)return;
     if(!force&&pos===lastSaved)return;
     lastSaved=pos;
-    fetch(SITE_URL+'/api/watch_history.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_progress',anime_id:ANIME_ID,episode_num:EP_NUM,watch_time:pos,episode_duration:EP_DUR})}).catch(function(){});
+    fetch(SITE_URL+'/api/watch_history.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save_progress',anime_id:ANIME_ID,episode_num:EP_NUM,watch_time:pos,episode_duration:EP_DUR,total_eps:TOTAL_EPS})}).catch(function(){});
   }
 
   function load(cb){fetch(SITE_URL+'/api/watch_history.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'get_progress',anime_id:ANIME_ID,episode_num:EP_NUM})}).then(function(r){return r.json();}).then(function(d){if(d.success&&d.watch_time>0)curPos=parseInt(d.watch_time);cb&&cb();}).catch(function(){cb&&cb();});}
