@@ -24,6 +24,7 @@ import { playerScript } from '../render/player-script';
 import { playerBody } from '../render/player-body';
 import { getBannerData } from '../lib/settings';
 import { findEpisodeThumbnails, episodeThumbCacheKey } from '../lib/episode-thumb';
+import { AnimeTracker } from '../lib/tracker';
 
 export const watchRoutes = new Hono<{ Bindings: Env }>();
 
@@ -209,6 +210,9 @@ watchRoutes.get('/watch', async (c) => {
     } catch { /* best-effort, same as the PHP version's try/catch */ }
   }
 
+  const listEntry = currentUser ? await AnimeTracker.getUserEntry(db, currentUser.id, animeId) : null;
+  const episodesWatched = listEntry?.episodes_watched ?? 0;
+
   const unreadCount = currentUser ? await Notification.unreadCount(db, currentUser.id) : 0;
   const layoutUser: CurrentUser | null = currentUser
     ? { id: currentUser.id, username: currentUser.username, avatar_url: currentUser.avatar_url, role: currentUser.role }
@@ -233,7 +237,7 @@ watchRoutes.get('/watch', async (c) => {
   html += renderWatchBody({
     anime, image, coverSm, title, animeId, epNum, totalEps, video, qSub, hasMegaplayFallback,
     isLoggedIn: auth.check(), prevEp, nextEp, currentEpInfo, chars, allEps, allVideos,
-    videoEpNumSet, resumeT, layoutUser, siteUrl,
+    videoEpNumSet, resumeT, layoutUser, siteUrl, episodesWatched,
   });
 
   // Server-probing/switching script (always present)
@@ -250,7 +254,7 @@ watchRoutes.get('/watch', async (c) => {
 
   // Wall-clock progress tracker (logged-in users only, matches the PHP Auth::check() gate)
   if (auth.check()) {
-    html += watchScript2(animeId, epNum, siteUrl, epDurationSec);
+    html += watchScript2(animeId, epNum, siteUrl, epDurationSec, totalEps);
   }
 
   html += renderFooter({ siteUrl, currentUser: layoutUser });
@@ -278,7 +282,7 @@ watchRoutes.get('/watch', async (c) => {
   html += `<style id="sp-skin">${PLAYER_CSS}</style>`;
   html += playerBody({
     title, epNum, currentEpTitle: currentEpInfo?.title ?? null, prevEpNum: pPrevEp, nextEpNum: pNextEp,
-    watchBase, epNums, curEp: epNum, totalEpsN: totalEps,
+    watchBase, epNums, curEp: epNum, totalEpsN: totalEps, episodesWatched,
   });
   html += `<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.8/dist/hls.min.js"></script>`;
   // Same double-wrap issue as watchScript1/2 above — playerScript() already
@@ -312,11 +316,13 @@ interface WatchBodyParams {
   resumeT: number;
   layoutUser: CurrentUser | null;
   siteUrl: string;
+  episodesWatched: number;
 }
 
 export function renderWatchBody(p: WatchBodyParams): string {
   const { anime, image, coverSm, title, animeId, epNum, totalEps, video, qSub, hasMegaplayFallback,
-    isLoggedIn, prevEp, nextEp, currentEpInfo, chars, allEps, allVideos, videoEpNumSet, layoutUser, siteUrl } = p;
+    isLoggedIn, prevEp, nextEp, currentEpInfo, chars, allEps, allVideos, videoEpNumSet, layoutUser, siteUrl,
+    episodesWatched } = p;
 
   const genres = (anime.genres ?? []).slice(0, 6);
   const score = anime.score;
@@ -414,9 +420,10 @@ export function renderWatchBody(p: WatchBodyParams): string {
       const ept = (ep.title ?? '') !== 'TBA' ? (ep.title ?? '') : '';
       const hasVid = videoEpNumSet.has(n);
       const isAct = n === epNum;
+      const isWatched = episodesWatched > 0 && n <= episodesWatched;
       return `
           <a href="${h(`${siteUrl}/watch?anime=${animeId}&ep=${n}`)}"
-             class="ep-item${hasVid ? ' playable' : ''}${isAct ? ' active' : ''}"
+             class="ep-item${hasVid ? ' playable' : ''}${isAct ? ' active' : ''}${isWatched ? ' watched' : ''}"
              data-s="${h(`ep ${n} ${ept || 'episode ' + n}`.toLowerCase())}">
             <div class="ep-thumb-box" data-ep="${n}">
               <img src="${h(coverSm)}" alt="" class="ep-thumb-img" loading="lazy" onload="this.classList.add('vis')">
@@ -431,8 +438,9 @@ export function renderWatchBody(p: WatchBodyParams): string {
     epListHtml = allVideos.map((v) => {
       const n = v.episode_num;
       const isAct = n === epNum;
+      const isWatched = episodesWatched > 0 && n <= episodesWatched;
       return `
-          <a href="${siteUrl}/watch?anime=${animeId}&ep=${n}" class="ep-item playable${isAct ? ' active' : ''}" data-s="ep ${n} ${(v.title || 'episode ' + n).toLowerCase()}">
+          <a href="${siteUrl}/watch?anime=${animeId}&ep=${n}" class="ep-item playable${isAct ? ' active' : ''}${isWatched ? ' watched' : ''}" data-s="ep ${n} ${(v.title || 'episode ' + n).toLowerCase()}">
             <div class="ep-thumb-box" data-ep="${n}">
               <img src="${h(coverSm)}" alt="" class="ep-thumb-img" loading="lazy" onload="this.classList.add('vis')">
               <div class="ep-play-ov"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></div>

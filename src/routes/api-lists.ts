@@ -179,19 +179,21 @@ apiListRoutes.post('/api/watch_history.php', async (c) => {
       // watch_time/episode_duration/watched_at -- episode_num/titles/thumb
       // are left alone here because the watch page's own page-load upsert
       // (in watch.ts) already set them correctly before playback started.
-      const existing = await db.fetchOne<{ id: number }>(
-        'SELECT id FROM watch_history WHERE user_id = ? AND anime_id = ? AND episode_num = ?',
+      const existing = await db.fetchOne<{ id: number; anime_title: string | null; anime_image: string | null }>(
+        'SELECT id, anime_title, anime_image FROM watch_history WHERE user_id = ? AND anime_id = ? AND episode_num = ?',
         [userId, animeId, epNum]
       );
+      let animeTitle = (body.anime_title ?? '').trim();
+      let animeImage = (body.anime_image ?? '').trim();
       if (existing) {
         if (duration > 0) {
           await db.query('UPDATE watch_history SET watch_time=?, episode_duration=? WHERE id=?', [watchTime, duration, existing.id]);
         } else {
           await db.query('UPDATE watch_history SET watch_time=? WHERE id=?', [watchTime, existing.id]);
         }
+        animeTitle = animeTitle || existing.anime_title || '';
+        animeImage = animeImage || existing.anime_image || '';
       } else {
-        const animeTitle = (body.anime_title ?? '').trim();
-        const animeImage = (body.anime_image ?? '').trim();
         const epThumb = (body.ep_thumb ?? '').trim();
         const epTitle = (body.ep_title ?? '').trim();
         await db.query(
@@ -201,6 +203,15 @@ apiListRoutes.post('/api/watch_history.php', async (c) => {
              watch_time = excluded.watch_time, episode_duration = excluded.episode_duration, watched_at = datetime('now')`,
           [userId, animeId, animeTitle, animeImage, epNum, epTitle, epThumb, watchTime, duration]
         );
+      }
+
+      // Auto-track the watchlist off real watch percentage: 5% watched ->
+      // ensure it's on the list as "watching"; 90%+ -> mark this episode
+      // watched (and "completed" once the last episode is reached).
+      if (duration > 0) {
+        const pct = watchTime / duration;
+        const totalEpsParam = parseInt(body.total_eps ?? '0', 10) || 0;
+        await AnimeTracker.autoTrackProgress(db, userId, animeId, epNum, pct, totalEpsParam, animeTitle, animeImage);
       }
     } else {
       const existing = await db.fetchOne<{ id: number }>(
