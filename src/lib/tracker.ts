@@ -134,6 +134,73 @@ export const AnimeTracker = {
     return { success: true, message: 'Anime list updated!' };
   },
 
+  /**
+   * Auto-tracking hook, called from save_progress on every watch-progress
+   * save. Mirrors how sites like AniList/MAL auto-update a list from watch
+   * activity: hitting 5% of an episode ensures the anime is on the list as
+   * "watching"; hitting 90% marks that episode as watched (bumping
+   * episodes_watched, and flipping to "completed" once the last episode is
+   * reached). An explicit "dropped" status is left alone -- we still don't
+   * want to silently un-drop something a user deliberately dropped.
+   */
+  async autoTrackProgress(
+    db: Db,
+    userId: number,
+    animeId: number,
+    epNum: number,
+    pct: number,
+    totalEps: number,
+    animeTitle: string,
+    animeImage: string
+  ): Promise<void> {
+    if (!userId || !animeId || !epNum || pct < 0.05) return;
+    const reachedComplete = pct >= 0.9;
+
+    const existing = await db.fetchOne<AnimeListEntry & { started_at?: string | null }>(
+      'SELECT * FROM anime_list WHERE user_id=? AND anime_id=?',
+      [userId, animeId]
+    );
+
+    if (!existing) {
+      const localImage = await getLocalAnimeImage(db, animeId);
+      const image = localImage || animeImage || '';
+      const isFullyWatched = reachedComplete && totalEps > 0 && epNum >= totalEps;
+      const status = isFullyWatched ? 'completed' : 'watching';
+      const episodesWatched = reachedComplete ? epNum : 0;
+      const today = new Date().toISOString().split('T')[0];
+      await db.insert(
+        `INSERT INTO anime_list (user_id, anime_id, anime_title, anime_image, anime_episodes, status, episodes_watched, started_at, completed_at)
+         VALUES (?,?,?,?,?,?,?,?,?)`,
+        [userId, animeId, animeTitle || '', image, totalEps || 0, status, episodesWatched, today, isFullyWatched ? today : null]
+      );
+      await Logger.log(db, userId, 'anime_auto_track', `Auto-tracked anime ${animeId} as ${status} (ep ${epNum})`);
+      return;
+    }
+
+    if (existing.status === 'dropped') return;
+
+    let newStatus = existing.status;
+    let newEpisodesWatched = existing.episodes_watched;
+
+    if (reachedComplete) {
+      newEpisodesWatched = Math.max(existing.episodes_watched, epNum);
+      const effectiveTotal = totalEps || existing.anime_episodes || 0;
+      if (effectiveTotal > 0 && epNum >= effectiveTotal) newStatus = 'completed';
+      else if (existing.status === 'plan_to_watch' || existing.status === 'on_hold') newStatus = 'watching';
+    } else if (existing.status === 'plan_to_watch') {
+      newStatus = 'watching';
+    }
+
+    if (newStatus === existing.status && newEpisodesWatched === existing.episodes_watched) return;
+
+    const completedAtExpr = newStatus === 'completed' ? "date('now')" : 'completed_at';
+    await db.query(
+      `UPDATE anime_list SET status=?, episodes_watched=?, completed_at=${completedAtExpr}, updated_at=datetime('now') WHERE id=?`,
+      [newStatus, newEpisodesWatched, existing.id]
+    );
+    await Logger.log(db, userId, 'anime_auto_track', `Auto-tracked anime ${animeId} -> ${newStatus} (ep ${epNum})`);
+  },
+
   async remove(db: Db, userId: number, animeId: number): Promise<{ success: boolean; message: string }> {
     await db.query('DELETE FROM anime_list WHERE user_id=? AND anime_id=?', [userId, animeId]);
     return { success: true, message: 'Removed from list.' };
