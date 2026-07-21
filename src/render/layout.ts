@@ -140,7 +140,7 @@ ${og.type === 'video.episode' ? `
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${h(o.pageTitle ?? o.siteName)} — AniVault</title>
-<meta name="description" content="${h(og?.description ?? o.pageDescription ?? 'Track your anime, discover new series, and connect with the community.')}">
+<meta name="description" content="${h(og?.description ?? o.pageDescription ?? 'Free & Ad-Free anime streaming platform!')}">
 <link rel="stylesheet" href="${o.siteUrl}/assets/css/style.css">
 <link rel="icon" type="image/png" href="${o.siteUrl}/assets/img/site-img/icon.png">
 <link rel="canonical" href="${h(og?.url ?? o.requestUrl)}">
