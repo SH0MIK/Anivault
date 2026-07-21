@@ -140,10 +140,19 @@ ${og.type === 'video.episode' ? `
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${h(o.pageTitle ?? o.siteName)} — AniVault</title>
-<meta name="description" content="${h(og?.description ?? o.pageDescription ?? 'Free & Ad-Free anime streaming platform!')}">
+<meta name="description" content="${h(og?.description ?? o.pageDescription ?? 'Track your anime, discover new series, and connect with the community.')}">
 <link rel="stylesheet" href="${o.siteUrl}/assets/css/style.css">
 <link rel="icon" type="image/png" href="${o.siteUrl}/assets/img/site-img/icon.png">
 <link rel="canonical" href="${h(og?.url ?? o.requestUrl)}">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "AniVault",
+  "url": "https://www.anivault.co",
+  "description": "Free & Ad-Free anime streaming platform!"
+}
+</script>
 <script>window.__siteUrl = '${o.siteUrl}';</script>
 <script src="${o.siteUrl}/assets/js/app.js" defer></script>
 ${ogBlock}
