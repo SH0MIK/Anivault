@@ -76,7 +76,7 @@ ${og.type === 'video.episode' ? `
 <meta name="theme-color" content="#e8453c">`
     : `
 <meta property="og:title" content="${h(o.siteName)}.co">
-<meta property="og:description" content="Watch all anime subbed & dubbed adfree on AniVault">
+<meta property="og:description" content="Watch all anime subbed & dubbed Ad-free on Anivault!">
 <meta property="og:site_name" content="${h(o.siteName)}">
 <meta property="og:type" content="website">
 <meta property="og:url" content="${h(o.requestUrl)}">
@@ -85,7 +85,7 @@ ${og.type === 'video.episode' ? `
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${h(o.siteName)}.co">
-<meta name="twitter:description" content="Watch all anime subbed & dubbed adfree on AniVault">
+<meta name="twitter:description" content="Watch all anime subbed & dubbed Ad-free on Anivault!">
 <meta name="twitter:image" content="${o.siteUrl}/assets/img/site-img/embed.png">
 <meta name="theme-color" content="#e8453c">`;
 
@@ -140,7 +140,8 @@ ${og.type === 'video.episode' ? `
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>${h(o.pageTitle ?? o.siteName)} — AniVault</title>
-<meta name="description" content="${h(og?.description ?? o.pageDescription ?? 'Track your anime, discover new series, and connect with the community.')}">
+<meta name="description" content="${h(og?.description ?? o.pageDescription ?? 'Watch all anime subbed & dubbed Ad-free on Anivault!')}">
+<meta name="application-name" content="AniVault">
 <link rel="stylesheet" href="${o.siteUrl}/assets/css/style.css">
 <link rel="icon" type="image/png" href="${o.siteUrl}/assets/img/site-img/icon.png">
 <link rel="canonical" href="${h(og?.url ?? o.requestUrl)}">
@@ -150,7 +151,7 @@ ${og.type === 'video.episode' ? `
   "@type": "WebSite",
   "name": "AniVault",
   "url": "https://www.anivault.co",
-  "description": "Free & Ad-Free anime streaming platform!"
+  "description": "Watch all anime subbed & dubbed Ad-free on Anivault!"
 }
 </script>
 <script>window.__siteUrl = '${o.siteUrl}';</script>
