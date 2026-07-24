@@ -93,6 +93,7 @@ homeRoutes.get('/', async (c) => {
     ...__banner,    siteUrl,
     siteName: c.env.SITE_NAME,
     pageTitle: 'Home',
+    pageDescription: 'Watch all anime subbed & dubbed Ad-free on Anivault!',
     currentPage: 'index',
     currentUser: layoutUser,
     unreadCount,
